@@ -7,5 +7,7 @@ builder.Services.AddDbContext<CodeForgeDbContext>(options=>options.UseNpgsql(con
 
 var app = builder.Build();
 
+app.MapGet("/",()=>"Online");
+
 app.Run();
 
