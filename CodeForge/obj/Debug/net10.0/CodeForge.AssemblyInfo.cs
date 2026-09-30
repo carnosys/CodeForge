@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CodeForge")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bf24d3826aeb2d6733e48264fb55b057946060c8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+30d6305f80e2167a0986b0587577e4ab2a6b6708")]
 [assembly: System.Reflection.AssemblyProductAttribute("CodeForge")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CodeForge")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
