@@ -1,6 +1,52 @@
 @CodeForge_HostAddress = http://localhost:5113
+@JobId = 58d894ce-c4bc-4b06-8bc7-4cb7035634ea
 
-GET {{CodeForge_HostAddress}}/weatherforecast/
+### Health check
+GET {{CodeForge_HostAddress}}/
 Accept: application/json
 
 ###
+
+### Get all jobs
+GET {{CodeForge_HostAddress}}/api/Job
+Accept: application/json
+
+###
+
+### Get one job
+GET {{CodeForge_HostAddress}}/api/Job/{{JobId}}
+Accept: application/json
+
+###
+
+### Create a job
+POST {{CodeForge_HostAddress}}/api/Job
+Content-Type: application/json
+Accept: application/json
+
+{
+  "repoUrl": "https://github.com/dotnet/aspnetcore",
+  "jobTitle": "Analyze ASP.NET Core repository",
+  "jobDescription": "Run a code-quality analysis on the repository."
+}
+
+###
+
+### Update a job
+# Status values: 0 = Pending, 1 = Running, 2 = Completed, 3 = Failed
+PUT {{CodeForge_HostAddress}}/api/Job/{{JobId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "jobTitle": "Analyze ASP.NET Core repository",
+  "jobDescription": "The repository analysis is currently running.",
+  "status": 1,
+  "startedAt": "2026-10-01T10:00:00Z",
+  "completedAt": null
+}
+
+###
+
+### Delete a job
+DELETE {{CodeForge_HostAddress}}/api/Job/{{JobId}}
