@@ -1,8 +1,9 @@
 using CodeForge.Dtos;
 using CodeForge.Helpers;
+using CodeForge.Infrastructure.Data;
+using CodeForge.Infrastructure.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Models.Job;
 
 
 [ApiController]

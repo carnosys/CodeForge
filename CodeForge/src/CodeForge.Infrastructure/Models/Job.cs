@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Models.Job;
+namespace CodeForge.Infrastructure.Models;
 
 
 public class GitHubRepoUrlAttribute : ValidationAttribute

@@ -121,3 +121,7 @@
 /home/nebula-v15/Code/CodeForge/CodeForge/obj/Debug/net10.0/CodeForge.pdb
 /home/nebula-v15/Code/CodeForge/CodeForge/obj/Debug/net10.0/CodeForge.genruntimeconfig.cache
 /home/nebula-v15/Code/CodeForge/CodeForge/obj/Debug/net10.0/ref/CodeForge.dll
+/home/nebula-v15/Code/CodeForge/CodeForge/bin/Debug/net10.0/CodeForge.staticwebassets.runtime.json
+/home/nebula-v15/Code/CodeForge/CodeForge/obj/Debug/net10.0/compressed/5cbxiwpobg-{0}-5nwcf2gspm-5nwcf2gspm.gz
+/home/nebula-v15/Code/CodeForge/CodeForge/obj/Debug/net10.0/compressed/ie34hr4xwc-{0}-vn7ryda1js-vn7ryda1js.gz
+/home/nebula-v15/Code/CodeForge/CodeForge/obj/Debug/net10.0/compressed/s4zu44uwhi-{0}-lbovwt3vwg-lbovwt3vwg.gz

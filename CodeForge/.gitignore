@@ -1,4 +1,37 @@
+# Local configuration and secrets
 .env
+.env.*
+!.env.example
 *.http
-bin/
-Migrations/
+
+# .NET build output
+**/[Bb]in/
+**/[Oo]bj/
+**/[Ll]og/
+**/[Ll]ogs/
+artifacts/
+
+# Test and coverage output
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# IDE and editor settings
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+_ReSharper*/
+
+# Local logs and diagnostics
+*.log
+*.dmp
+
+# Operating-system files
+.DS_Store
+Thumbs.db

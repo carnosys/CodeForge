@@ -1,10 +1,9 @@
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
-using ProcessRunnerNmspc;
+namespace CodeForge.Worker;
 
 
 public class RepositoryProcessor
 {
-    private ProcessRunner _processRunner;
+    private readonly ProcessRunner _processRunner;
 
     public RepositoryProcessor(ProcessRunner processRunner)
     {
@@ -12,7 +11,7 @@ public class RepositoryProcessor
     }
 
 
-    public async Task processRepoAsync(string repoUrl, CancellationToken stoppingtoken)
+    public async Task ProcessRepoAsync(string repoUrl, CancellationToken stoppingToken)
     {
         string workspace = Path.Combine(
             Path.GetTempPath(), "codeforge",
@@ -38,7 +37,7 @@ public class RepositoryProcessor
            },
            workspace,
            TimeSpan.FromSeconds(20),
-           stoppingtoken
+           stoppingToken
         );
 
             if (clone_result.TimeOut)
@@ -52,7 +51,9 @@ public class RepositoryProcessor
             }
 
 
-            string? projectFile = Directory.EnumerateFiles(workspace, "*.csproj").FirstOrDefault();
+            string? projectFile = Directory
+                .EnumerateFiles(repoPath, "*.csproj", SearchOption.AllDirectories)
+                .FirstOrDefault();
 
             if (projectFile == null)
             {
@@ -69,7 +70,7 @@ public class RepositoryProcessor
                         },
                         repoPath,
                         TimeSpan.FromMinutes(5),
-                        stoppingtoken
+                        stoppingToken
                     );
 
 

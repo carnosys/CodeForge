@@ -1,4 +1,4 @@
-using Models.Job;
+using CodeForge.Infrastructure.Models;
 
 namespace CodeForge.Dtos;
 
@@ -14,6 +14,5 @@ public class UpdateJobDto
 
     public DateTime? CompletedAt { get; set; }
 }
-
 
 

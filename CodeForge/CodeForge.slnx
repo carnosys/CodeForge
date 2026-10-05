@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/CodeForge.Api/CodeForge.Api.csproj" />
+  <Project Path="src/CodeForge.Infrastructure/CodeForge.Infrastructure.csproj" />
+  <Project Path="src/CodeForge.Worker/CodeForge.Worker.csproj" />
+</Solution>

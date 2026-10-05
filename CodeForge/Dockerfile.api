@@ -1,0 +1,29 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY src/CodeForge.Infrastructure/CodeForge.Infrastructure.csproj src/CodeForge.Infrastructure/
+COPY src/CodeForge.Api/CodeForge.Api.csproj src/CodeForge.Api/
+RUN dotnet restore src/CodeForge.Api/CodeForge.Api.csproj
+
+COPY src/ src/
+RUN dotnet publish src/CodeForge.Api/CodeForge.Api.csproj \
+    --configuration Release \
+    --output /app/publish \
+    --no-restore \
+    /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+
+COPY --from=build --chown=$APP_UID:$APP_UID /app/publish ./
+USER $APP_UID
+
+ENTRYPOINT ["dotnet", "CodeForge.Api.dll"]

@@ -1,29 +1,78 @@
-services:
-  #app:
-   # build: .
-    #ports:
-     # - "3000:5113"
-    #volumes:
-     # - ./:/app
-    #environment:
-     # DB_HOST: database
-      #DB_PORT: 5432
-      #DB_USER: ${DB_USER}
-      #DB_PASSWORD: ${DB_PASSWORD}
-      #DB_NAME: ${DB_NAME}
-    #depends_on:
-     # - database
+name: codeforge
 
+x-database-environment: &database-environment
+  ConnectionStrings__DefaultConnection: >-
+    Host=database;Port=5432;Database=${DB_NAME:-codeforge};
+    Username=${DB_USER:-codeforge};Password=${DB_PASSWORD:?Set DB_PASSWORD in CodeForge/.env}
+
+services:
   database:
     image: postgres:17
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: ${DB_NAME:-codeforge}
+      POSTGRES_USER: ${DB_USER:-codeforge}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in CodeForge/.env}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
     volumes:
       - db_data:/var/lib/postgresql/data
+
+  migrate:
+    image: tahacodeforge.azurecr.io/codeforge-api:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["--migrate"]
+    environment: *database-environment
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: tahacodeforge.azurecr.io/codeforge-api:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment: *database-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
-     - "5432:5432"  
+      - "${API_PORT:-8080}:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  worker:
+    image: tahacodeforge.azurecr.io/codeforge-worker:v1
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment: *database-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=2g
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2
+    restart: unless-stopped
 
 volumes:
   db_data:
