@@ -1,3 +1,4 @@
+using CodeForge.Api.Messaging;
 using CodeForge.Dtos;
 using CodeForge.Helpers;
 using CodeForge.Infrastructure.Data;
@@ -10,10 +11,15 @@ using Microsoft.EntityFrameworkCore;
 [Route("api/[controller]")]
 public class JobController : ControllerBase
 {
-    private CodeForgeDbContext _context;
-    public JobController(CodeForgeDbContext context)
+    private readonly CodeForgeDbContext _context;
+    private readonly ServiceBusProducer _producer;
+
+    public JobController(
+        CodeForgeDbContext context,
+        ServiceBusProducer producer)
     {
         _context = context;
+        _producer = producer;
     }
 
    [HttpGet]
@@ -63,6 +69,7 @@ public class JobController : ControllerBase
 
       await _context.Job.AddAsync(job);
       await _context.SaveChangesAsync();
+      await _producer.SendMessageAsync(job.Id.ToString(), HttpContext.RequestAborted);
       return Ok(job);
     }
 

@@ -1,13 +1,14 @@
+using CodeForge.Api.Messaging;
 using CodeForge.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
+var connectionString = DatabaseConnection.GetConnectionString(builder.Configuration);
 
 builder.Services.AddDbContext<CodeForgeDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddControllers();
+builder.Services.AddSingleton<ServiceBusProducer>();
 
 var app = builder.Build();
 

@@ -1,6 +1,6 @@
 # CodeForge
 
-CodeForge runs as three Compose services backed by PostgreSQL:
+CodeForge runs as three Compose services backed by Azure Database for PostgreSQL:
 
 - `api` serves the web UI and HTTP API.
 - `worker` claims queued jobs and builds repositories.
@@ -9,12 +9,22 @@ CodeForge runs as three Compose services backed by PostgreSQL:
 The API and worker use separate images because only the worker needs Git and the
 .NET SDK at runtime.
 
-## Run locally
+## Configure the database
 
-Create the local environment file and replace its example password:
+Create the local environment file and fill in the Azure PostgreSQL connection
+details:
 
 ```bash
 cp .env.example .env
+```
+
+In the Azure portal, allow the public outbound IP address of the machine that
+runs Compose under the PostgreSQL server's **Networking** settings. The database
+connection uses TLS with full server-certificate and hostname verification.
+
+## Run locally
+
+```bash
 docker compose up --build
 ```
 
@@ -24,7 +34,7 @@ Open <http://localhost:8080>. Stop the application with:
 docker compose down
 ```
 
-Database data remains in the `db_data` named volume. To scale workers after the
+Database data is stored by Azure PostgreSQL. To scale workers after the
 application is running:
 
 ```bash
