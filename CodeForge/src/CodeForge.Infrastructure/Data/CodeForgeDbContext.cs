@@ -10,4 +10,15 @@ public class CodeForgeDbContext : DbContext
     }
 
     public DbSet<Job> Job => Set<Job>();
+    public DbSet<OutboxMessage> OutboxMessage => Set<OutboxMessage>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Job>()
+            .HasOne(j => j.OutboxMessage)
+            .WithOne(m => m.Job)
+            .HasForeignKey<OutboxMessage>(m => m.JobId)
+            .OnDelete(DeleteBehavior.Cascade); // Automatically deletes outbox message if job is deleted
+    }
+
 }

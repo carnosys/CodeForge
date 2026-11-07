@@ -47,6 +47,8 @@ public class Job
     [MaxLength(500)] 
     public string? JobDescription {get; set;}
 
+    public OutboxMessage? OutboxMessage {get; set;}
+
     public JobStatus Status {get; set;} = JobStatus.Pending;
 
     public DateTime CreatedAt {get; set;} = DateTime.UtcNow;
@@ -54,6 +56,9 @@ public class Job
     public DateTime? StartedAt {get; set;}
 
     public DateTime? CompletedAt {get; set;}
+
+    [MaxLength(4000)]
+    public string? FailureReason {get; set;}
 }
 
 public enum JobStatus

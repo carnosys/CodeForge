@@ -1,4 +1,5 @@
 using CodeForge.Infrastructure.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace CodeForge.Dtos;
 
@@ -13,6 +14,9 @@ public class UpdateJobDto
     public DateTime? StartedAt { get; set; }
 
     public DateTime? CompletedAt { get; set; }
+
+    [MaxLength(4000)]
+    public string? FailureReason { get; set; }
 }
 
 

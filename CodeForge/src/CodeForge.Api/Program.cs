@@ -1,5 +1,5 @@
-using CodeForge.Api.Messaging;
 using CodeForge.Infrastructure.Data;
+using CodeForge.Infrastructure.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,7 +8,11 @@ var connectionString = DatabaseConnection.GetConnectionString(builder.Configurat
 
 builder.Services.AddDbContext<CodeForgeDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddControllers();
-builder.Services.AddSingleton<ServiceBusProducer>();
+builder.Services.AddSingleton(_ => new ServiceBusProducer(
+    builder.Configuration["QUEUE_CONNECTION_STRING_SEND"]
+        ?? throw new InvalidOperationException("QUEUE_CONNECTION_STRING_SEND is missing."),
+    builder.Configuration["QUEUE_NAME"]
+        ?? throw new InvalidOperationException("QUEUE_NAME is missing.")));
 
 var app = builder.Build();
 

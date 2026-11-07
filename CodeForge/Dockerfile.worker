@@ -20,9 +20,12 @@ RUN apt-get update \
 
 WORKDIR /app
 ENV DOTNET_CLI_HOME=/tmp/dotnet \
-    NUGET_PACKAGES=/tmp/nuget/packages
+    NUGET_PACKAGES=/tmp/nuget/packages \
+    HOME=/tmp/home \
+    XDG_RUNTIME_DIR=/tmp/codeforge-runtime \
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
 
 COPY --from=build --chown=$APP_UID:$APP_UID /app/publish ./
 USER $APP_UID
 
-ENTRYPOINT ["dotnet", "CodeForge.Worker.dll"]
+ENTRYPOINT ["sh", "-c", "mkdir -p \"$HOME\" \"$DOTNET_CLI_HOME\" \"$NUGET_PACKAGES\" \"$XDG_RUNTIME_DIR\" && chmod 700 \"$XDG_RUNTIME_DIR\" && exec dotnet CodeForge.Worker.dll"]

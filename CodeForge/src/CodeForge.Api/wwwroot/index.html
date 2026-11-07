@@ -89,10 +89,18 @@
         </div>
         <p class="job-description"></p>
         <a class="repo-link" target="_blank" rel="noreferrer"></a>
+        <div class="failure-summary" hidden>
+          <span>Failure reason</span>
+          <p></p>
+        </div>
       </div>
       <div class="job-meta">
         <span class="job-time"></span>
-        <button class="delete-button" type="button" aria-label="Delete job">Delete</button>
+        <div class="job-actions">
+          <a class="analysis-link">Analysis</a>
+          <button class="retry-button" type="button" hidden>Retry</button>
+          <button class="delete-button" type="button" aria-label="Delete job">Delete</button>
+        </div>
       </div>
     </article>
   </template>

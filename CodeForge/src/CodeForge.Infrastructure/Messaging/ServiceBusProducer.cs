@@ -1,35 +1,33 @@
 using Azure.Messaging.ServiceBus;
 
-namespace CodeForge.Api.Messaging;
+namespace CodeForge.Infrastructure.Messaging;
 
 public sealed class ServiceBusProducer : IAsyncDisposable
 {
     private readonly ServiceBusClient _client;
     private readonly ServiceBusSender _sender;
 
-    public ServiceBusProducer(IConfiguration configuration)
+    public ServiceBusProducer(string connectionString, string queueName)
     {
-        var connectionString =
-            configuration["QUEUE_CONNECTION_STRING"]
-            ?? throw new InvalidOperationException("QUEUE_CONNECTION_STRING is missing.");
-
-        var queueName =
-            configuration["QUEUE_NAME"]
-            ?? throw new InvalidOperationException("QUEUE_NAME is missing.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(queueName);
 
         _client = new ServiceBusClient(connectionString);
         _sender = _client.CreateSender(queueName);
     }
 
     public Task SendMessageAsync(
-        string messageBody,
+        Guid jobId,
+        Guid messageId,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(messageBody);
+        var jobIdText = jobId.ToString();
 
-        var message = new ServiceBusMessage(messageBody)
+        var message = new ServiceBusMessage(jobIdText)
         {
-            ContentType = "application/json"
+            MessageId = messageId.ToString(),
+            ContentType = "application/json",
+            SessionId = jobIdText
         };
 
         return _sender.SendMessageAsync(message, cancellationToken);

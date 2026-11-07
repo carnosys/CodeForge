@@ -44,6 +44,7 @@ public class JobWorker : BackgroundService
                 await ProcessJob(job, stoppingToken);
                 job.Status = JobStatus.Completed;
                 job.CompletedAt = DateTime.UtcNow;
+                job.FailureReason = null;
                 await context.SaveChangesAsync(stoppingToken);
             }
 
@@ -57,6 +58,7 @@ public class JobWorker : BackgroundService
                 _logger.LogError(exception, "Job {JobId} failed", job.Id);
                 job.Status = JobStatus.Failed;
                 job.CompletedAt = DateTime.UtcNow;
+                job.FailureReason = JobFailureReason.From(exception);
                 await context.SaveChangesAsync(stoppingToken);
             }
 

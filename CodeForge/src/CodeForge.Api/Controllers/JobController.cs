@@ -1,7 +1,7 @@
-using CodeForge.Api.Messaging;
 using CodeForge.Dtos;
 using CodeForge.Helpers;
 using CodeForge.Infrastructure.Data;
+using CodeForge.Infrastructure.Messaging;
 using CodeForge.Infrastructure.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -25,8 +25,11 @@ public class JobController : ControllerBase
    [HttpGet]
     public async Task<IActionResult> GetJobs()
     {
-     var Jobs = await _context.Job.ToListAsync();
-     return Ok(Jobs);
+     var jobs = await _context.Job
+         .AsNoTracking()
+         .OrderByDescending(job => job.CreatedAt)
+         .ToListAsync(HttpContext.RequestAborted);
+     return Ok(jobs.Select(JobResponseDto.FromJob).ToList());
     }
 
     [HttpGet("{id}")]
@@ -35,10 +38,15 @@ public class JobController : ControllerBase
         var job = await _context.Job.FirstOrDefaultAsync(j=> j.Id == id);
         if (job==null)
         {
-            return NotFound();
+            return NotFound(new ProblemDetails
+            {
+                Title = "Job not found",
+                Detail = $"No job exists with ID {id}. It may have been deleted.",
+                Status = StatusCodes.Status404NotFound
+            });
         }
 
-        return Ok(job);
+        return Ok(JobResponseDto.FromJob(job));
 
     }
 
@@ -67,10 +75,16 @@ public class JobController : ControllerBase
           JobDescription = createJobDto.JobDescription
       };
 
+      var outboxjob = new OutboxMessage
+      {
+          JobId = job.Id,
+          Job = job
+      };
+
       await _context.Job.AddAsync(job);
+      await _context.OutboxMessage.AddAsync(outboxjob);
       await _context.SaveChangesAsync();
-      await _producer.SendMessageAsync(job.Id.ToString(), HttpContext.RequestAborted);
-      return Ok(job);
+      return Ok(JobResponseDto.FromJob(job));
     }
 
     [HttpPut("{id}")]
@@ -98,11 +112,52 @@ public class JobController : ControllerBase
         job.Status = updateJobDto.Status;
         job.StartedAt = updateJobDto.StartedAt;
         job.CompletedAt = updateJobDto.CompletedAt;
+        job.FailureReason = updateJobDto.Status == JobStatus.Failed
+            ? updateJobDto.FailureReason
+            : null;
 
         await _context.SaveChangesAsync();
-        return Ok(job);
+        return Ok(JobResponseDto.FromJob(job));
     }
-   
+
+    [HttpPost("{id}/retry")]
+    public async Task<IActionResult> RetryJob(Guid id)
+    {
+        var resetCount = await _context.Job
+            .Where(job => job.Id == id && job.Status == JobStatus.Failed)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(job => job.Status, JobStatus.Pending)
+                .SetProperty(job => job.StartedAt, (DateTime?)null)
+                .SetProperty(job => job.CompletedAt, (DateTime?)null)
+                .SetProperty(job => job.FailureReason, (string?)null),
+                HttpContext.RequestAborted);
+
+        if (resetCount == 0)
+        {
+            var exists = await _context.Job.AnyAsync(
+                job => job.Id == id,
+                HttpContext.RequestAborted);
+
+            return exists
+                ? Conflict("Only failed jobs can be retried.")
+                : NotFound(new ProblemDetails
+                {
+                    Title = "Job not found",
+                    Detail = $"No job exists with ID {id}. It may have been deleted.",
+                    Status = StatusCodes.Status404NotFound
+                });
+        }
+
+        // The reset is persisted before a fresh message is published so the worker
+        // can claim this attempt as soon as it receives the message.
+        await _producer.SendMessageAsync(id, Guid.NewGuid(), HttpContext.RequestAborted);
+
+        var job = await _context.Job.AsNoTracking().SingleAsync(
+            job => job.Id == id,
+            HttpContext.RequestAborted);
+
+        return Ok(JobResponseDto.FromJob(job));
+    }
 
 
     [HttpDelete("{id}")]
@@ -111,12 +166,17 @@ public class JobController : ControllerBase
         var job = await _context.Job.FirstOrDefaultAsync(j=> j.Id == id);
         if (job==null)
         {
-            return NotFound();
+            return NotFound(new ProblemDetails
+            {
+                Title = "Job not found",
+                Detail = $"No job exists with ID {id}. It may have been deleted.",
+                Status = StatusCodes.Status404NotFound
+            });
         }
         
         _context.Job.Remove(job);
         await _context.SaveChangesAsync();
-        return Ok(job);
+        return Ok(JobResponseDto.FromJob(job));
     }
 
  

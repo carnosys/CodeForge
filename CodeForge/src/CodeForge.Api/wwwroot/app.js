@@ -39,7 +39,7 @@ async function getError(response) {
   if (!text) return `Request failed (${response.status})`;
   try {
     const body = JSON.parse(text);
-    return body.title || body.detail || text;
+    return body.detail || body.title || text;
   } catch {
     return text;
   }
@@ -63,6 +63,8 @@ function renderJobs(jobs) {
       const title = getValue(job, "jobTitle") || "Untitled build";
       const repoUrl = getValue(job, "repoUrl");
       const status = getStatus(job);
+      const jobId = getValue(job, "id");
+      const failureReason = getValue(job, "failureReason");
 
       card.style.animationDelay = `${index * 35}ms`;
       card.querySelector(".job-index").textContent = String(index + 1).padStart(2, "0");
@@ -77,8 +79,18 @@ function renderJobs(jobs) {
       pill.textContent = status;
       pill.classList.add(`status-${status.toLowerCase()}`);
 
+      const failureSummary = card.querySelector(".failure-summary");
+      if (status === "Failed") {
+        failureSummary.hidden = false;
+        failureSummary.querySelector("p").textContent = failureReason || "The worker did not provide a failure reason.";
+      }
+
       card.querySelector(".job-time").textContent = formatTime(getValue(job, "createdAt"));
-      card.querySelector(".delete-button").addEventListener("click", () => deleteJob(getValue(job, "id"), card));
+      card.querySelector(".analysis-link").href = `/analysis.html?id=${encodeURIComponent(jobId)}`;
+      const retryButton = card.querySelector(".retry-button");
+      retryButton.hidden = status !== "Failed";
+      retryButton.addEventListener("click", () => retryJob(jobId, retryButton));
+      card.querySelector(".delete-button").addEventListener("click", () => deleteJob(jobId, card));
       list.append(card);
     });
 }
@@ -96,6 +108,22 @@ async function loadJobs() {
     list.replaceChildren(empty);
   } finally {
     refreshButton.classList.remove("loading");
+  }
+}
+
+async function retryJob(id, button) {
+  button.disabled = true;
+  button.textContent = "Retrying…";
+
+  try {
+    const response = await fetch(`${apiUrl}/${id}/retry`, { method: "POST" });
+    if (!response.ok) throw new Error(await getError(response));
+    showMessage("Build reset and queued for retry.", true);
+    await loadJobs();
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "Retry";
+    showMessage(error.message);
   }
 }
 

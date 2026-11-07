@@ -8,7 +8,7 @@ namespace CodeForge.Worker.Messaging;
 public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
 {
     private readonly ServiceBusClient _client;
-    private readonly ServiceBusProcessor _processor;
+    private readonly ServiceBusSessionProcessor _processor;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly RepositoryProcessor _repositoryProcessor;
     private readonly ILogger<ServiceBusConsumer> _logger;
@@ -20,8 +20,8 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
         ILogger<ServiceBusConsumer> logger)
     {
         var connectionString =
-            configuration["QUEUE_CONNECTION_STRING"]
-            ?? throw new InvalidOperationException("QUEUE_CONNECTION_STRING is missing.");
+            configuration["QUEUE_CONNECTION_STRING_LISTEN"]
+            ?? throw new InvalidOperationException("QUEUE_CONNECTION_STRING_LISTEN is missing.");
 
         var queueName =
             configuration["QUEUE_NAME"]
@@ -32,10 +32,11 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
         _logger = logger;
 
         _client = new ServiceBusClient(connectionString);
-        _processor = _client.CreateProcessor(queueName, new ServiceBusProcessorOptions
+        _processor = _client.CreateSessionProcessor(queueName, new ServiceBusSessionProcessorOptions
         {
             AutoCompleteMessages = false,
-            MaxConcurrentCalls = 1,
+            MaxConcurrentSessions = 1,
+            MaxConcurrentCallsPerSession = 1,
             MaxAutoLockRenewalDuration = TimeSpan.FromMinutes(10)
         });
 
@@ -53,7 +54,7 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
         return _processor.StopProcessingAsync(cancellationToken);
     }
 
-    private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
+    private async Task ProcessMessageAsync(ProcessSessionMessageEventArgs args)
     {
         if (!Guid.TryParse(args.Message.Body.ToString(), out var jobId))
         {
@@ -90,9 +91,19 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
             return;
         }
 
-        if (job.Status is JobStatus.Completed or JobStatus.Failed)
+        if (job.Status is JobStatus.Completed)
         {
             await args.CompleteMessageAsync(args.Message, args.CancellationToken);
+            return;
+        }
+
+        if (job.Status is JobStatus.Failed)
+        {
+            await args.DeadLetterMessageAsync(
+                args.Message,
+                "Job already permanently failed",
+                $"Job {job.Id} is marked as Failed.",
+                args.CancellationToken);
             return;
         }
 
@@ -100,17 +111,22 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
         {
             job.Status = JobStatus.Running;
             job.StartedAt ??= DateTime.UtcNow;
+            job.FailureReason = null;
             await context.SaveChangesAsync(args.CancellationToken);
+
+            using var processingTimeOut = CancellationTokenSource.CreateLinkedTokenSource(args.CancellationToken);
+            processingTimeOut.CancelAfter(TimeSpan.FromMinutes(8));
 
             await _repositoryProcessor.ProcessRepoAsync(
                 job.RepoUrl,
-                args.CancellationToken);
+                processingTimeOut.Token);
 
             job.Status = JobStatus.Completed;
             job.CompletedAt = DateTime.UtcNow;
+            job.FailureReason = null;
             await context.SaveChangesAsync(args.CancellationToken);
 
-            await args.CompleteMessageAsync(args.Message, args.CancellationToken);
+
         }
         catch (OperationCanceledException) when (args.CancellationToken.IsCancellationRequested)
         {
@@ -118,18 +134,42 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Job {JobId} failed", job.Id);
+            _logger.LogError(
+                exception,
+                "Job {JobId} failed on delivery {DeliveryCount}",
+                job.Id,
+                args.Message.DeliveryCount);
 
-            job.Status = JobStatus.Failed;
-            job.CompletedAt = DateTime.UtcNow;
+            const int maxDeliveryCount = 5;
+
+            if (args.Message.DeliveryCount >= maxDeliveryCount)
+            {
+                job.Status = JobStatus.Failed;
+                job.CompletedAt = DateTime.UtcNow;
+                job.FailureReason = JobFailureReason.From(exception);
+
+                await context.SaveChangesAsync(args.CancellationToken);
+
+                await args.DeadLetterMessageAsync(
+                    args.Message,
+                    "Processing attempts exhausted",
+                    exception.Message,
+                    args.CancellationToken);
+
+                return;
+            }
+
+            // More attempts remain.
+            job.Status = JobStatus.Pending;
+            job.CompletedAt = null;
+            job.FailureReason = null;
+
             await context.SaveChangesAsync(args.CancellationToken);
 
-            await args.DeadLetterMessageAsync(
-                args.Message,
-                "Job processing failed",
-                exception.Message,
-                args.CancellationToken);
+            throw; // Processor abandons the message for another delivery.
         }
+
+        await args.CompleteMessageAsync(args.Message, args.CancellationToken);
     }
 
     private Task ProcessErrorAsync(ProcessErrorEventArgs args)

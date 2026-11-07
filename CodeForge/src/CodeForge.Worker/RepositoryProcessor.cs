@@ -42,12 +42,14 @@ public class RepositoryProcessor
 
             if (clone_result.TimeOut)
             {
-                throw new Exception("Repository clone timed out");
+                throw new RepositoryProcessingException(
+                    "Repository clone timed out after 20 seconds. The repository may be too large or temporarily unavailable.");
             }
 
             if (clone_result.ExitCode != 0)
             {
-                throw new Exception($"Clone result: {clone_result.StandardError}");
+                throw new RepositoryProcessingException(
+                    DescribeCloneFailure(clone_result.StandardError));
             }
 
 
@@ -57,7 +59,8 @@ public class RepositoryProcessor
 
             if (projectFile == null)
             {
-                throw new Exception("No supported .NET project found");
+                throw new RepositoryProcessingException(
+                    "No supported .NET project was found. The repository must contain at least one .csproj file.");
 
             }
 
@@ -76,12 +79,14 @@ public class RepositoryProcessor
 
             if (build_result.TimeOut)
             {
-                throw new Exception("Build timed out");
+                throw new RepositoryProcessingException(
+                    "The .NET build timed out after 5 minutes.");
             }
 
             if (build_result.ExitCode != 0)
             {
-                throw new Exception($"Build result: {build_result.StandardError}");
+                throw new RepositoryProcessingException(
+                    $"The .NET build failed with exit code {build_result.ExitCode}. Raw build output is kept out of the public job record because repository builds are untrusted.");
             }
 
             Console.WriteLine($"Build succeeded: {build_result.StandardOutput}");
@@ -102,4 +107,27 @@ public class RepositoryProcessor
         }
     }
 
+    private static string DescribeCloneFailure(string? standardError)
+    {
+        if (standardError?.Contains("Repository not found", StringComparison.OrdinalIgnoreCase) == true ||
+            standardError?.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return "Repository clone failed because the repository does not exist, is private, or the URL is incorrect.";
+        }
+
+        if (standardError?.Contains("Could not resolve host", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return "Repository clone failed because GitHub could not be reached. Check the worker's DNS and network connection.";
+        }
+
+        return "Repository clone failed. Verify that the URL is correct, the repository exists, and it is public.";
+    }
+
+}
+
+public sealed class RepositoryProcessingException : Exception
+{
+    public RepositoryProcessingException(string message) : base(message)
+    {
+    }
 }

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Inspect a CodeForge build job and its failure reason.">
+  <title>Job analysis — CodeForge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="CodeForge home">
+        <span class="brand-mark" aria-hidden="true">CF</span>
+        <span>CodeForge</span>
+      </a>
+      <a class="back-link" href="/">← Build queue</a>
+    </header>
+
+    <main class="analysis-page">
+      <div class="analysis-heading">
+        <p class="eyebrow">JOB ANALYSIS</p>
+        <h1>Build report.</h1>
+        <p class="hero-copy">Status, timing, repository details, and the recorded reason a build failed.</p>
+      </div>
+
+      <section class="analysis-panel" id="analysis-panel" aria-live="polite">
+        <div class="empty-state">Loading job analysis…</div>
+      </section>
+    </main>
+
+    <footer>
+      <span>CodeForge / job analysis</span>
+      <span>Supports public .NET repositories</span>
+    </footer>
+  </div>
+
+  <script src="/analysis.js" defer></script>
+</body>
+</html>

@@ -34,6 +34,10 @@ namespace CodeForge.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<string>("JobDescription")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -55,6 +59,54 @@ namespace CodeForge.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Job");
+                });
+
+            modelBuilder.Entity("CodeForge.Infrastructure.Models.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastPublishError")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("NextPublishAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PublishAttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId")
+                        .IsUnique();
+
+                    b.ToTable("OutboxMessage");
+                });
+
+            modelBuilder.Entity("CodeForge.Infrastructure.Models.OutboxMessage", b =>
+                {
+                    b.HasOne("CodeForge.Infrastructure.Models.Job", "Job")
+                        .WithOne("OutboxMessage")
+                        .HasForeignKey("CodeForge.Infrastructure.Models.OutboxMessage", "JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("CodeForge.Infrastructure.Models.Job", b =>
+                {
+                    b.Navigation("OutboxMessage");
                 });
 #pragma warning restore 612, 618
         }
