@@ -1,5 +1,6 @@
 using CodeForge.Infrastructure.Data;
 using CodeForge.Infrastructure.Messaging;
+using CodeForge.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,10 @@ builder.Services.AddSingleton(_ => new ServiceBusProducer(
         ?? throw new InvalidOperationException("QUEUE_CONNECTION_STRING_SEND is missing."),
     builder.Configuration["QUEUE_NAME"]
         ?? throw new InvalidOperationException("QUEUE_NAME is missing.")));
+builder.Services.AddSingleton(_ => new BlobReportStore(
+    new Uri(builder.Configuration["BLOB_SERVICE_URI"]
+        ?? throw new InvalidOperationException("BLOB_SERVICE_URI is missing.")),
+    builder.Configuration["BLOB_CONTAINER_NAME"] ?? "codeforge-reports"));
 
 var app = builder.Build();
 

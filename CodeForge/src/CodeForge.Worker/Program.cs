@@ -22,5 +22,4 @@ builder.Services.AddSingleton<ServiceBusConsumer>();
 builder.Services.AddHostedService(
     services => services.GetRequiredService<ServiceBusConsumer>());
 builder.Services.AddHostedService<OutboxPublisher>();
-
 await builder.Build().RunAsync();

@@ -202,7 +202,7 @@ input::placeholder { color: #aaa99f; }
 .section-heading .eyebrow { margin-bottom: 8px; }
 h2 { margin: 0; font-size: 36px; letter-spacing: -.045em; }
 
-.refresh-button, .analysis-link, .retry-button, .delete-button {
+.refresh-button, .analysis-link, .retry-button, .delete-button, .save-report-button {
   padding: 8px 0;
   color: var(--ink);
   background: transparent;
@@ -339,6 +339,23 @@ footer {
 .analysis-summary h2 { font-size: clamp(28px, 4vw, 46px); }
 .analysis-summary .status-pill { margin-top: 2px; }
 
+.analysis-summary-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.save-report-button { color: #577000; border-color: #577000; cursor: pointer; }
+.save-report-button:disabled { cursor: wait; opacity: .6; }
+.report-download-message {
+  max-width: 300px;
+  color: var(--muted);
+  font: 400 10px/1.5 "DM Mono", monospace;
+  text-align: right;
+}
+
 .analysis-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -418,6 +435,9 @@ footer {
   .topbar { height: 68px; }
   .system-status { font-size: 9px; }
   .hero { gap: 42px; padding-top: 52px; }
+  .analysis-summary { flex-direction: column; }
+  .analysis-summary-actions { align-items: flex-start; }
+  .report-download-message { text-align: left; }
   h1 { font-size: 46px; }
   .job-form { padding: 20px; box-shadow: 6px 6px 0 var(--ink); }
   .field-grid { grid-template-columns: 1fr; }

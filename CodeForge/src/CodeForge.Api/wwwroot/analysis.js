@@ -63,6 +63,59 @@ function showLookupError(title, detail) {
   panel.replaceChildren(state);
 }
 
+function createReportActions(jobId) {
+  const actions = document.createElement("div");
+  actions.className = "analysis-summary-actions";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "save-report-button";
+  button.textContent = "Save report PDF";
+
+  const message = document.createElement("span");
+  message.className = "report-download-message";
+  message.setAttribute("aria-live", "polite");
+
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    button.textContent = "Saving report…";
+    message.textContent = "";
+
+    try {
+      const response = await fetch(`/api/job/${encodeURIComponent(jobId)}/report`);
+      if (!response.ok) {
+        let detail = `The server returned ${response.status}.`;
+        try {
+          const problem = await response.json();
+          detail = problem.detail || problem.title || detail;
+        } catch {
+          // The response was not a problem-details document.
+        }
+        throw new Error(detail);
+      }
+
+      const report = await response.blob();
+      const downloadUrl = URL.createObjectURL(report);
+      const download = document.createElement("a");
+      download.href = downloadUrl;
+      download.download = `codeforge-report-${jobId.replaceAll("-", "")}.pdf`;
+      document.body.append(download);
+      download.click();
+      download.remove();
+      URL.revokeObjectURL(downloadUrl);
+      message.textContent = "Report saved to Blob Storage and downloaded.";
+    } catch (error) {
+      message.textContent = error.message;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Save report PDF";
+    }
+  });
+
+  actions.append(button, message);
+  return actions;
+}
+
 function renderJob(job) {
   const status = getStatus(job);
   const failureReason = getValue(job, "failureReason");
@@ -80,7 +133,9 @@ function renderJob(job) {
   const pill = document.createElement("span");
   pill.className = `status-pill status-${String(status).toLowerCase()}`;
   pill.textContent = status;
-  summary.append(summaryText, pill);
+  const summaryActions = createReportActions(getValue(job, "id"));
+  summaryActions.prepend(pill);
+  summary.append(summaryText, summaryActions);
 
   const grid = document.createElement("dl");
   grid.className = "analysis-grid";

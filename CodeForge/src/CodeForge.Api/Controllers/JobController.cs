@@ -1,8 +1,10 @@
+using CodeForge.Api.Reports;
 using CodeForge.Dtos;
 using CodeForge.Helpers;
 using CodeForge.Infrastructure.Data;
 using CodeForge.Infrastructure.Messaging;
 using CodeForge.Infrastructure.Models;
+using CodeForge.Infrastructure.Reports;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,13 +15,19 @@ public class JobController : ControllerBase
 {
     private readonly CodeForgeDbContext _context;
     private readonly ServiceBusProducer _producer;
+    private readonly BlobReportStore _reportStore;
+    private readonly ILogger<JobController> _logger;
 
     public JobController(
         CodeForgeDbContext context,
-        ServiceBusProducer producer)
+        ServiceBusProducer producer,
+        BlobReportStore reportStore,
+        ILogger<JobController> logger)
     {
         _context = context;
         _producer = producer;
+        _reportStore = reportStore;
+        _logger = logger;
     }
 
    [HttpGet]
@@ -48,6 +56,53 @@ public class JobController : ControllerBase
 
         return Ok(JobResponseDto.FromJob(job));
 
+    }
+
+    [HttpGet("{id}/report")]
+    public async Task<IActionResult> DownloadReport(Guid id)
+    {
+        var job = await _context.Job
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                candidate => candidate.Id == id,
+                HttpContext.RequestAborted);
+
+        if (job is null)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Title = "Job not found",
+                Detail = $"No job exists with ID {id}. It may have been deleted.",
+                Status = StatusCodes.Status404NotFound
+            });
+        }
+
+        var pdf = JobReportPdfGenerator.Generate(job);
+
+        try
+        {
+            await _reportStore.SaveAsync(
+                job.Id,
+                pdf,
+                HttpContext.RequestAborted);
+        }
+        catch (ReportStorageException exception)
+        {
+            _logger.LogError(
+                exception,
+                "Could not save the PDF report for job {JobId}",
+                job.Id);
+
+            return Problem(
+                title: "Report storage is unavailable",
+                detail: "The PDF was generated but could not be saved to Blob Storage.",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        return File(
+            pdf,
+            "application/pdf",
+            $"codeforge-report-{job.Id:N}.pdf");
     }
 
     [HttpPost]
@@ -178,6 +233,4 @@ public class JobController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(JobResponseDto.FromJob(job));
     }
-
- 
 }

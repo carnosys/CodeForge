@@ -9,6 +9,8 @@ x-database-environment: &database-environment
 
 x-api-environment: &api-environment
   <<: *database-environment
+  BLOB_SERVICE_URI: ${BLOB_SERVICE_URI:?Set BLOB_SERVICE_URI in CodeForge/.env}
+  BLOB_CONTAINER_NAME: ${BLOB_CONTAINER_NAME:-codeforge-reports}
   QUEUE_CONNECTION_STRING_SEND: ${QUEUE_CONNECTION_STRING_SEND:?Set QUEUE_CONNECTION_STRING_SEND in CodeForge/.env}
   QUEUE_NAME: ${QUEUE_NAME:?Set QUEUE_NAME in CodeForge/.env}
 
