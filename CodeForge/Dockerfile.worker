@@ -14,8 +14,22 @@ RUN dotnet publish src/CodeForge.Worker/CodeForge.Worker.csproj \
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS final
 
+ARG LIZARD_VERSION=1.17.31
+ARG MADGE_VERSION=8.0.0
+
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends git ca-certificates \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        git \
+        graphviz \
+        nodejs \
+        npm \
+        python3 \
+        python3-venv \
+    && python3 -m venv /opt/lizard \
+    && /opt/lizard/bin/pip install --no-cache-dir "lizard==${LIZARD_VERSION}" \
+    && npm install --global "madge@${MADGE_VERSION}" \
+    && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -23,9 +37,15 @@ ENV DOTNET_CLI_HOME=/tmp/dotnet \
     NUGET_PACKAGES=/tmp/nuget/packages \
     HOME=/tmp/home \
     XDG_RUNTIME_DIR=/tmp/codeforge-runtime \
-    DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
+    PATH=/opt/lizard/bin:$PATH
 
 COPY --from=build --chown=$APP_UID:$APP_UID /app/publish ./
 USER $APP_UID
+
+RUN lizard --version \
+    && madge --version \
+    && dot -V \
+    && gvpr -V
 
 ENTRYPOINT ["sh", "-c", "mkdir -p \"$HOME\" \"$DOTNET_CLI_HOME\" \"$NUGET_PACKAGES\" \"$XDG_RUNTIME_DIR\" && chmod 700 \"$XDG_RUNTIME_DIR\" && exec dotnet CodeForge.Worker.dll"]

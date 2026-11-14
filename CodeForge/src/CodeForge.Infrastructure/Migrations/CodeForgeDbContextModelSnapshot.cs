@@ -28,11 +28,26 @@ namespace CodeForge.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BuildFindingsJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ComplexityAnalysisJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CoverageAnalysisJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("DependencyAnalysisJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("DotNetArchitectureJson")
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("FailureReason")
                         .HasMaxLength(4000)
@@ -46,9 +61,29 @@ namespace CodeForge.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int?>("AnalysisOutcome")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProcessingStage")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ReportReady")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RepositoryCommitSha")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("WorkerVersion")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("RepoUrl")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("RunTests")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone");
@@ -91,6 +126,52 @@ namespace CodeForge.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("OutboxMessage");
+                });
+
+            modelBuilder.Entity("CodeForge.Infrastructure.Models.Job", b =>
+                {
+                    b.OwnsOne("CodeForge.Infrastructure.Models.JobTestSummary", "TestSummary", b1 =>
+                        {
+                            b1.Property<Guid>("JobId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int?>("Executed")
+                                .HasColumnType("integer")
+                                .HasColumnName("TestExecuted");
+
+                            b1.Property<int?>("Failed")
+                                .HasColumnType("integer")
+                                .HasColumnName("TestFailed");
+
+                            b1.Property<bool>("IsPartial")
+                                .HasColumnType("boolean")
+                                .HasColumnName("TestIsPartial");
+
+                            b1.Property<int>("SkipReason")
+                                .HasColumnType("integer")
+                                .HasColumnName("TestSkipReason");
+
+                            b1.Property<int>("Outcome")
+                                .HasColumnType("integer")
+                                .HasColumnName("TestOutcome");
+
+                            b1.Property<int?>("Passed")
+                                .HasColumnType("integer")
+                                .HasColumnName("TestPassed");
+
+                            b1.Property<int?>("Skipped")
+                                .HasColumnType("integer")
+                                .HasColumnName("TestSkipped");
+
+                            b1.HasKey("JobId");
+
+                            b1.ToTable("Job");
+
+                            b1.WithOwner()
+                                .HasForeignKey("JobId");
+                        });
+
+                    b.Navigation("TestSummary");
                 });
 
             modelBuilder.Entity("CodeForge.Infrastructure.Models.OutboxMessage", b =>

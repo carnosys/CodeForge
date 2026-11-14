@@ -41,11 +41,17 @@ public class JobWorker : BackgroundService
             try
             {
 
-                await ProcessJob(job, stoppingToken);
-                job.Status = JobStatus.Completed;
-                job.CompletedAt = DateTime.UtcNow;
-                job.FailureReason = null;
+                job.SetTestSummary(JobTestSummary.NotRun());
+                job.ClearStaticAnalysis();
+                job.ProcessingStage = ProcessingStage.Queued;
                 await context.SaveChangesAsync(stoppingToken);
+
+                var result = await ProcessJob(job, context, stoppingToken);
+                await JobCompletion.FinalizeAsync(
+                    job,
+                    result,
+                    token => context.SaveChangesAsync(token),
+                    stoppingToken);
             }
 
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -57,6 +63,9 @@ public class JobWorker : BackgroundService
             {
                 _logger.LogError(exception, "Job {JobId} failed", job.Id);
                 job.Status = JobStatus.Failed;
+                job.ProcessingStage = ProcessingStage.Failed;
+                job.AnalysisOutcome = JobAnalysisOutcome.InfrastructureFailed;
+                job.ReportReady = false;
                 job.CompletedAt = DateTime.UtcNow;
                 job.FailureReason = JobFailureReason.From(exception);
                 await context.SaveChangesAsync(stoppingToken);
@@ -99,8 +108,32 @@ public class JobWorker : BackgroundService
     }
 
 
-    private async Task ProcessJob(Job job, CancellationToken stoppingToken)
+    private Task<RepositoryProcessingResult> ProcessJob(
+        Job job,
+        CodeForgeDbContext context,
+        CancellationToken stoppingToken)
     {
-        await _repositoryProcessor.ProcessRepoAsync(job.RepoUrl, stoppingToken);
+        return _repositoryProcessor.ProcessRepoAsync(
+            job.Id,
+            job.RepoUrl,
+            job.RunTests,
+            async (analysis, cancellationToken) =>
+            {
+                job.SetTestSummary(analysis.Tests);
+                job.SetCoverageAnalysis(analysis.Coverage);
+                job.SetDotNetArchitecture(analysis.Architecture);
+                job.SetBuildFindings(analysis.BuildFindings);
+                job.SetComplexityAnalysis(analysis.Complexity);
+                job.SetDependencyAnalysis(analysis.Dependencies);
+                job.RepositoryCommitSha = analysis.RepositoryCommitSha;
+                job.WorkerVersion = analysis.WorkerVersion;
+                await context.SaveChangesAsync(cancellationToken);
+            },
+            async (stage, cancellationToken) =>
+            {
+                job.ProcessingStage = stage;
+                await context.SaveChangesAsync(cancellationToken);
+            },
+            stoppingToken);
     }
 }

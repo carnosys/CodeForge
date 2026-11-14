@@ -1,5 +1,6 @@
 using CodeForge.Infrastructure.Data;
 using CodeForge.Infrastructure.Messaging;
+using CodeForge.Infrastructure.Reports;
 using CodeForge.Worker;
 using CodeForge.Worker.Messaging;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,15 @@ var connectionString = DatabaseConnection.GetConnectionString(builder.Configurat
 
 builder.Services.AddDbContext<CodeForgeDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddSingleton<ProcessRunner>();
+builder.Services.AddSingleton(_ => new BlobReportStore(
+    new Uri(builder.Configuration["BLOB_SERVICE_URI"]
+        ?? throw new InvalidOperationException("BLOB_SERVICE_URI is missing.")),
+    builder.Configuration["BLOB_CONTAINER_NAME"] ?? "codeforge-reports"));
+builder.Services.AddSingleton<IAnalysisArtifactStore>(services =>
+    services.GetRequiredService<BlobReportStore>());
+builder.Services.AddSingleton<StaticAnalysisRunner>();
+builder.Services.AddSingleton<BuildDiagnosticsRunner>();
+builder.Services.AddSingleton<DotNetArchitectureRunner>();
 builder.Services.AddSingleton<RepositoryProcessor>();
 builder.Services.AddSingleton(_ => new ServiceBusProducer(
     builder.Configuration["QUEUE_CONNECTION_STRING_SEND"]

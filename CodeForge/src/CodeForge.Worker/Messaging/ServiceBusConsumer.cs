@@ -37,7 +37,7 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
             AutoCompleteMessages = false,
             MaxConcurrentSessions = 1,
             MaxConcurrentCallsPerSession = 1,
-            MaxAutoLockRenewalDuration = TimeSpan.FromMinutes(10)
+            MaxAutoLockRenewalDuration = TimeSpan.FromMinutes(20)
         });
 
         _processor.ProcessMessageAsync += ProcessMessageAsync;
@@ -112,19 +112,42 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
             job.Status = JobStatus.Running;
             job.StartedAt ??= DateTime.UtcNow;
             job.FailureReason = null;
+            job.ProcessingStage = ProcessingStage.Queued;
+            job.SetTestSummary(JobTestSummary.NotRun());
+            job.ClearStaticAnalysis();
             await context.SaveChangesAsync(args.CancellationToken);
 
             using var processingTimeOut = CancellationTokenSource.CreateLinkedTokenSource(args.CancellationToken);
-            processingTimeOut.CancelAfter(TimeSpan.FromMinutes(8));
+            processingTimeOut.CancelAfter(TimeSpan.FromMinutes(15));
 
-            await _repositoryProcessor.ProcessRepoAsync(
+            var result = await _repositoryProcessor.ProcessRepoAsync(
+                job.Id,
                 job.RepoUrl,
+                job.RunTests,
+                async (analysis, cancellationToken) =>
+                {
+                    job.SetTestSummary(analysis.Tests);
+                    job.SetCoverageAnalysis(analysis.Coverage);
+                    job.SetDotNetArchitecture(analysis.Architecture);
+                    job.SetBuildFindings(analysis.BuildFindings);
+                    job.SetComplexityAnalysis(analysis.Complexity);
+                    job.SetDependencyAnalysis(analysis.Dependencies);
+                    job.RepositoryCommitSha = analysis.RepositoryCommitSha;
+                    job.WorkerVersion = analysis.WorkerVersion;
+                    await context.SaveChangesAsync(cancellationToken);
+                },
+                async (stage, cancellationToken) =>
+                {
+                    job.ProcessingStage = stage;
+                    await context.SaveChangesAsync(cancellationToken);
+                },
                 processingTimeOut.Token);
 
-            job.Status = JobStatus.Completed;
-            job.CompletedAt = DateTime.UtcNow;
-            job.FailureReason = null;
-            await context.SaveChangesAsync(args.CancellationToken);
+            await JobCompletion.FinalizeAsync(
+                job,
+                result,
+                token => context.SaveChangesAsync(token),
+                args.CancellationToken);
 
 
         }
@@ -145,6 +168,9 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
             if (args.Message.DeliveryCount >= maxDeliveryCount)
             {
                 job.Status = JobStatus.Failed;
+                job.ProcessingStage = ProcessingStage.Failed;
+                job.AnalysisOutcome = JobAnalysisOutcome.InfrastructureFailed;
+                job.ReportReady = false;
                 job.CompletedAt = DateTime.UtcNow;
                 job.FailureReason = JobFailureReason.From(exception);
 
@@ -161,6 +187,8 @@ public sealed class ServiceBusConsumer : IHostedService, IAsyncDisposable
 
             // More attempts remain.
             job.Status = JobStatus.Pending;
+            job.ProcessingStage = ProcessingStage.Queued;
+            job.ReportReady = false;
             job.CompletedAt = null;
             job.FailureReason = null;
 

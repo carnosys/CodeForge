@@ -29,6 +29,30 @@ function formatTime(value) {
   }).format(date);
 }
 
+function getRepositoryName(repoUrl) {
+  try {
+    const path = new URL(repoUrl).pathname.replace(/^\/+|\/+$/g, "");
+    return path || repoUrl;
+  } catch {
+    return repoUrl;
+  }
+}
+
+function getJobContext(job, status) {
+  const resultSummary = getValue(job, "resultSummary");
+  if (resultSummary) {
+    return getValue(resultSummary, "description") || getValue(resultSummary, "label");
+  }
+
+  return status === "Pending"
+    ? "Waiting for an available worker."
+    : status === "Running"
+      ? "Repository analysis is in progress."
+      : status === "Completed"
+        ? "Repository processing completed."
+        : getValue(job, "failureReason") || "Repository processing failed.";
+}
+
 function showMessage(text, isSuccess = false) {
   message.textContent = text;
   message.classList.toggle("success", isSuccess);
@@ -39,7 +63,10 @@ async function getError(response) {
   if (!text) return `Request failed (${response.status})`;
   try {
     const body = JSON.parse(text);
-    return body.detail || body.title || text;
+    const validationErrors = body.errors && typeof body.errors === "object"
+      ? Object.values(body.errors).flat().join(" ")
+      : "";
+    return body.detail || validationErrors || body.title || text;
   } catch {
     return text;
   }
@@ -51,7 +78,7 @@ function renderJobs(jobs) {
   if (!jobs.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "No builds yet. Queue your first repository above.";
+    empty.textContent = "No analyses yet. Queue your first repository above.";
     list.append(empty);
     return;
   }
@@ -60,7 +87,6 @@ function renderJobs(jobs) {
     .sort((a, b) => new Date(getValue(b, "createdAt")) - new Date(getValue(a, "createdAt")))
     .forEach((job, index) => {
       const card = template.content.firstElementChild.cloneNode(true);
-      const title = getValue(job, "jobTitle") || "Untitled build";
       const repoUrl = getValue(job, "repoUrl");
       const status = getStatus(job);
       const jobId = getValue(job, "id");
@@ -68,8 +94,8 @@ function renderJobs(jobs) {
 
       card.style.animationDelay = `${index * 35}ms`;
       card.querySelector(".job-index").textContent = String(index + 1).padStart(2, "0");
-      card.querySelector("h3").textContent = title;
-      card.querySelector(".job-description").textContent = getValue(job, "jobDescription") || "No description";
+      card.querySelector("h3").textContent = getRepositoryName(repoUrl);
+      card.querySelector(".job-description").textContent = getJobContext(job, status);
 
       const link = card.querySelector(".repo-link");
       link.href = repoUrl;
@@ -104,7 +130,7 @@ async function loadJobs() {
   } catch (error) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = `Could not load builds. ${error.message}`;
+    empty.textContent = `Could not load analyses. ${error.message}`;
     list.replaceChildren(empty);
   } finally {
     refreshButton.classList.remove("loading");
@@ -118,7 +144,7 @@ async function retryJob(id, button) {
   try {
     const response = await fetch(`${apiUrl}/${id}/retry`, { method: "POST" });
     if (!response.ok) throw new Error(await getError(response));
-    showMessage("Build reset and queued for retry.", true);
+    showMessage("Analysis reset and queued for retry.", true);
     await loadJobs();
   } catch (error) {
     button.disabled = false;
@@ -151,6 +177,7 @@ form.addEventListener("submit", async (event) => {
 
   const data = new FormData(form);
   const payload = Object.fromEntries(data.entries());
+  payload.runTests = data.get("runTests") === "true";
 
   try {
     const response = await fetch(apiUrl, {
@@ -160,13 +187,13 @@ form.addEventListener("submit", async (event) => {
     });
     if (!response.ok) throw new Error(await getError(response));
     form.reset();
-    showMessage("Build queued successfully.", true);
+    showMessage("Analysis queued successfully.", true);
     await loadJobs();
   } catch (error) {
     showMessage(error.message);
   } finally {
     submitButton.disabled = false;
-    submitButton.firstElementChild.textContent = "Queue build";
+    submitButton.firstElementChild.textContent = "Queue analysis";
   }
 });
 

@@ -26,13 +26,11 @@ public static class JobValidationHelper
 
     public static bool IsValidDescription(string? description)
     {
-        return !string.IsNullOrWhiteSpace(description) &&
-               description.Length <= 500;
+        return string.IsNullOrWhiteSpace(description) || description.Trim().Length <= 500;
     }
 
     public static bool IsValidTitle(string? title)
     {
-        return !string.IsNullOrWhiteSpace(title) &&
-               title.Length <= 100;
+        return string.IsNullOrWhiteSpace(title) || title.Trim().Length <= 100;
     }
 }

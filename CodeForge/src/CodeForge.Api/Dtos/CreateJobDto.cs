@@ -7,5 +7,7 @@ public class CreateJobDto
     public string? JobTitle { get; set; }
 
     public string? JobDescription { get; set; }
+
+    public bool RunTests { get; set; }
 }
 

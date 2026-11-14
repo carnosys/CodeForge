@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Submit and monitor .NET repository build jobs.">
-  <title>CodeForge — Build runner</title>
+  <meta name="description" content="Analyze repository build health, tests, coverage, complexity, and dependency structure.">
+  <title>CodeForge — Repository analysis</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20261114-1">
 </head>
 <body>
   <div class="page-shell">
@@ -23,14 +23,13 @@
     <main>
       <section class="hero">
         <div>
-          <p class="eyebrow">.NET BUILD RUNNER</p>
-          <h1>Ship code that<br><em>actually builds.</em></h1>
-          <p class="hero-copy">Point CodeForge at a public GitHub repository. We’ll clone it, compile it, and report back.</p>
+          <h1>Understand code.<br><em>Improve what matters.</em></h1>
+          <p class="hero-copy">CodeForge analyzes a public GitHub repository’s build health, diagnostics, tests, coverage, complexity, and dependency structure—then turns the evidence into a clear engineering report.</p>
         </div>
 
         <form class="job-form" id="job-form">
           <div class="form-heading">
-            <span>New build</span>
+            <span>New analysis</span>
             <span class="step">01 / SUBMIT</span>
           </div>
 
@@ -40,19 +39,16 @@
             <input id="repo-url" name="repoUrl" type="url" required placeholder="https://github.com/owner/repository" autocomplete="url">
           </div>
 
-          <div class="field-grid">
-            <div>
-              <label for="job-title">Build name</label>
-              <input id="job-title" name="jobTitle" type="text" maxlength="100" required placeholder="Release candidate">
-            </div>
-            <div>
-              <label for="job-description">Description</label>
-              <input id="job-description" name="jobDescription" type="text" maxlength="500" required placeholder="Compile and verify main branch">
-            </div>
-          </div>
+          <label class="trusted-test-option" for="run-tests">
+            <input id="run-tests" name="runTests" type="checkbox" value="true">
+            <span>
+              Run .NET tests
+              <small>Only enable this for a repository you trust. Test code executes inside the worker.</small>
+            </span>
+          </label>
 
           <button type="submit" id="submit-button">
-            <span>Queue build</span><span aria-hidden="true">→</span>
+            <span>Queue analysis</span><span aria-hidden="true">→</span>
           </button>
           <p class="form-message" id="form-message" role="status"></p>
         </form>
@@ -61,21 +57,21 @@
       <section class="queue" aria-labelledby="queue-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">BUILD ACTIVITY</p>
-            <h2 id="queue-title">Recent jobs</h2>
+            <p class="eyebrow">ANALYSIS ACTIVITY</p>
+            <h2 id="queue-title">Recent repositories</h2>
           </div>
-          <button class="refresh-button" id="refresh-button" type="button" aria-label="Refresh build jobs">Refresh <span aria-hidden="true">↻</span></button>
+          <button class="refresh-button" id="refresh-button" type="button" aria-label="Refresh repository analyses">Refresh <span aria-hidden="true">↻</span></button>
         </div>
 
         <div class="job-list" id="job-list" aria-live="polite">
-          <div class="empty-state">Loading build queue…</div>
+          <div class="empty-state">Loading repository analyses…</div>
         </div>
       </section>
     </main>
 
     <footer>
-      <span>CodeForge / local build service</span>
-      <span>Supports public .NET repositories</span>
+      <span>CodeForge / repository analysis</span>
+      <span>C#, JavaScript, and TypeScript signals</span>
     </footer>
   </div>
 
@@ -105,6 +101,6 @@
     </article>
   </template>
 
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=20261114-2" defer></script>
 </body>
 </html>

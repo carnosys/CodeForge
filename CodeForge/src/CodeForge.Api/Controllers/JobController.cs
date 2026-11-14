@@ -77,7 +77,50 @@ public class JobController : ControllerBase
             });
         }
 
-        var pdf = JobReportPdfGenerator.Generate(job);
+        if (!job.ReportReady)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Title = "Final report is not ready",
+                Detail = job.Status is JobStatus.Pending or JobStatus.Running
+                    ? $"CodeForge is currently {JobResultSummary.FormatStage(job.ProcessingStage)}. Try again after processing reaches a terminal state."
+                    : "Processing ended before the final report could be persisted.",
+                Status = StatusCodes.Status409Conflict
+            });
+        }
+
+        ReadOnlyMemory<byte>? dependencyGraph = null;
+        ReadOnlyMemory<byte>? dotNetProjectGraph = null;
+        if (job.GetDependencyAnalysis()?.GraphAvailable == true)
+        {
+            try
+            {
+                dependencyGraph = await _reportStore.GetDependencyGraphJpegAsync(
+                    job.Id,
+                    HttpContext.RequestAborted);
+            }
+            catch (ArtifactStorageException exception)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Could not load the dependency graph for report {JobId}",
+                    job.Id);
+            }
+        }
+
+        if (job.GetDotNetArchitecture()?.GraphAvailable == true)
+        {
+            try
+            {
+                dotNetProjectGraph = await _reportStore.GetDotNetProjectGraphJpegAsync(job.Id, HttpContext.RequestAborted);
+            }
+            catch (ArtifactStorageException exception)
+            {
+                _logger.LogWarning(exception, "Could not load the .NET project graph for report {JobId}", job.Id);
+            }
+        }
+
+        var pdf = JobReportPdfGenerator.Generate(job, dependencyGraph, dotNetProjectGraph);
 
         try
         {
@@ -105,6 +148,68 @@ public class JobController : ControllerBase
             $"codeforge-report-{job.Id:N}.pdf");
     }
 
+    [HttpGet("{id}/dotnet-project-graph")]
+    public async Task<IActionResult> GetDotNetProjectGraph(Guid id)
+    {
+        var job = await _context.Job.AsNoTracking().SingleOrDefaultAsync(candidate => candidate.Id == id, HttpContext.RequestAborted);
+        if (job is null || job.GetDotNetArchitecture()?.GraphAvailable != true) return NotFound();
+        try
+        {
+            var graph = await _reportStore.GetDotNetProjectGraphPngAsync(id, HttpContext.RequestAborted);
+            return graph is null ? NotFound() : File(graph.Value.ToArray(), "image/png");
+        }
+        catch (ArtifactStorageException exception)
+        {
+            _logger.LogError(exception, "Could not load .NET project graph for job {JobId}", id);
+            return Problem(title: ".NET project graph storage is unavailable", statusCode: 503);
+        }
+    }
+
+    [HttpGet("{id}/dependency-graph")]
+    public async Task<IActionResult> GetDependencyGraph(Guid id)
+    {
+        var job = await _context.Job
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                candidate => candidate.Id == id,
+                HttpContext.RequestAborted);
+
+        if (job is null)
+        {
+            return NotFound();
+        }
+
+        if (job.GetDependencyAnalysis()?.GraphAvailable != true)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Title = "Dependency graph unavailable",
+                Detail = "This analysis does not have a rendered JavaScript/TypeScript dependency graph.",
+                Status = StatusCodes.Status404NotFound
+            });
+        }
+
+        try
+        {
+            var graph = await _reportStore.GetDependencyGraphPngAsync(
+                job.Id,
+                HttpContext.RequestAborted);
+            return graph is null
+                ? NotFound()
+                : File(graph.Value.ToArray(), "image/png");
+        }
+        catch (ArtifactStorageException exception)
+        {
+            _logger.LogError(
+                exception,
+                "Could not load dependency graph for job {JobId}",
+                job.Id);
+            return Problem(
+                title: "Dependency graph storage is unavailable",
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateJob([FromBody] CreateJobDto createJobDto)
     {
@@ -115,19 +220,20 @@ public class JobController : ControllerBase
 
       if (!JobValidationHelper.IsValidTitle(createJobDto.JobTitle))
       {
-          return BadRequest("JobTitle is required and cannot exceed 100 characters.");
+          return BadRequest("JobTitle cannot exceed 100 characters.");
       }
 
       if (!JobValidationHelper.IsValidDescription(createJobDto.JobDescription))
       {
-          return BadRequest("JobDescription is required and cannot exceed 500 characters.");
+          return BadRequest("JobDescription cannot exceed 500 characters.");
       }
 
       var job = new Job
       {
           RepoUrl = createJobDto.RepoUrl,
-          JobTitle = createJobDto.JobTitle,
-          JobDescription = createJobDto.JobDescription
+          JobTitle = string.IsNullOrWhiteSpace(createJobDto.JobTitle) ? null : createJobDto.JobTitle.Trim(),
+          JobDescription = string.IsNullOrWhiteSpace(createJobDto.JobDescription) ? null : createJobDto.JobDescription.Trim(),
+          RunTests = createJobDto.RunTests
       };
 
       var outboxjob = new OutboxMessage
@@ -178,38 +284,39 @@ public class JobController : ControllerBase
     [HttpPost("{id}/retry")]
     public async Task<IActionResult> RetryJob(Guid id)
     {
-        var resetCount = await _context.Job
-            .Where(job => job.Id == id && job.Status == JobStatus.Failed)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(job => job.Status, JobStatus.Pending)
-                .SetProperty(job => job.StartedAt, (DateTime?)null)
-                .SetProperty(job => job.CompletedAt, (DateTime?)null)
-                .SetProperty(job => job.FailureReason, (string?)null),
-                HttpContext.RequestAborted);
+        var job = await _context.Job.SingleOrDefaultAsync(
+            candidate => candidate.Id == id,
+            HttpContext.RequestAborted);
 
-        if (resetCount == 0)
+        if (job is null)
         {
-            var exists = await _context.Job.AnyAsync(
-                job => job.Id == id,
-                HttpContext.RequestAborted);
-
-            return exists
-                ? Conflict("Only failed jobs can be retried.")
-                : NotFound(new ProblemDetails
-                {
-                    Title = "Job not found",
-                    Detail = $"No job exists with ID {id}. It may have been deleted.",
-                    Status = StatusCodes.Status404NotFound
-                });
+            return NotFound(new ProblemDetails
+            {
+                Title = "Job not found",
+                Detail = $"No job exists with ID {id}. It may have been deleted.",
+                Status = StatusCodes.Status404NotFound
+            });
         }
+
+        if (job.Status != JobStatus.Failed)
+        {
+            return Conflict("Only failed jobs can be retried.");
+        }
+
+        job.Status = JobStatus.Pending;
+        job.StartedAt = null;
+        job.CompletedAt = null;
+        job.FailureReason = null;
+        job.ProcessingStage = ProcessingStage.Queued;
+        job.AnalysisOutcome = null;
+        job.ReportReady = false;
+        job.SetTestSummary(JobTestSummary.NotRun());
+        job.ClearStaticAnalysis();
+        await _context.SaveChangesAsync(HttpContext.RequestAborted);
 
         // The reset is persisted before a fresh message is published so the worker
         // can claim this attempt as soon as it receives the message.
         await _producer.SendMessageAsync(id, Guid.NewGuid(), HttpContext.RequestAborted);
-
-        var job = await _context.Job.AsNoTracking().SingleAsync(
-            job => job.Id == id,
-            HttpContext.RequestAborted);
 
         return Ok(JobResponseDto.FromJob(job));
     }
