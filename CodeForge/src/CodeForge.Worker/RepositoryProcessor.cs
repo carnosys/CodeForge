@@ -693,6 +693,12 @@ public sealed class RepositoryProcessor
             return "Repository clone failed because GitHub could not be reached. Check the worker's DNS and network connection.";
         }
 
+        if (standardError?.Contains("No space left on device", StringComparison.OrdinalIgnoreCase) == true ||
+            standardError?.Contains("Disk quota exceeded", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return "Repository clone failed because the worker ran out of temporary storage.";
+        }
+
         return "Repository clone failed. Verify that the URL is correct, the repository exists, and it is public.";
     }
 

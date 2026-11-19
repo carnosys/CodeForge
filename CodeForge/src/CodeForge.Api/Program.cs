@@ -1,6 +1,10 @@
+using CodeForge.Api.Auth;
 using CodeForge.Infrastructure.Data;
 using CodeForge.Infrastructure.Messaging;
+using CodeForge.Infrastructure.Models;
 using CodeForge.Infrastructure.Reports;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +12,46 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = DatabaseConnection.GetConnectionString(builder.Configuration);
 
 builder.Services.AddDbContext<CodeForgeDbContext>(options => options.UseNpgsql(connectionString));
+builder.Services
+    .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+        options.Password.RequiredLength = 12;
+        options.Password.RequireDigit = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Lockout.AllowedForNewUsers = true;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    })
+    .AddEntityFrameworkStores<CodeForgeDbContext>()
+    .AddDefaultTokenProviders();
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.Name = "CodeForge.Auth";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;
+    options.Events.OnRedirectToLogin = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
+});
+builder.Services.AddAuthorization();
+builder.Services.AddDataProtection()
+    .SetApplicationName("CodeForge")
+    .PersistKeysToDbContext<CodeForgeDbContext>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddControllers();
 builder.Services.AddSingleton(_ => new ServiceBusProducer(
     builder.Configuration["QUEUE_CONNECTION_STRING_SEND"]
@@ -39,6 +83,9 @@ app.UseStaticFiles(new StaticFileOptions
         context.Context.Response.Headers.Expires = "0";
     }
 });
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 app.MapControllers();

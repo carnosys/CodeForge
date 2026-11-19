@@ -33,6 +33,24 @@ public sealed class WebsiteContractTests
     }
 
     [Fact]
+    public void FrontendRequiresAnAuthenticatedSession()
+    {
+        var index = ReadWebAsset("index.html");
+        var analysis = ReadWebAsset("analysis.html");
+        var session = ReadWebAsset("session.js");
+        var login = ReadWebAsset("login.html");
+
+        Assert.Contains("/session.js", index);
+        Assert.Contains("/session.js", analysis);
+        Assert.Contains("const authApiUrl = \"/api/auth\"", session);
+        Assert.Contains("`${authApiUrl}/me`", session);
+        Assert.Contains("redirectToLogin", session);
+        Assert.Contains("id=\"login-form\"", login);
+        Assert.Contains("id=\"register-form\"", login);
+        Assert.Contains("type=\"password\"", login);
+    }
+
+    [Fact]
     public void AnalysisPageIncludesEveryPersistedEngineeringSignal()
     {
         var script = ReadWebAsset("analysis.js");
@@ -76,6 +94,19 @@ public sealed class WebsiteContractTests
         Assert.DoesNotContain("insertAdjacentHTML", scripts, StringComparison.Ordinal);
         Assert.Contains("textContent = getRepositoryName", scripts);
         Assert.Contains("message.textContent = getValue(finding, \"message\")", scripts);
+    }
+
+    [Fact]
+    public void LargeBuildFindingListsAreBoundedAndKeyboardScrollable()
+    {
+        var script = ReadWebAsset("analysis.js");
+        var styles = ReadWebAsset("styles.css");
+
+        Assert.Contains("list.tabIndex = 0", script);
+        Assert.Contains("Scrollable build findings list", script);
+        Assert.Contains(".build-finding-list", styles);
+        Assert.Contains("max-height: min(65vh, 640px)", styles);
+        Assert.Contains("overflow-y: auto", styles);
     }
 
     private static string ReadWebAsset(string fileName) =>

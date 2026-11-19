@@ -66,6 +66,8 @@ services:
     read_only: true
     tmpfs:
       - /tmp:rw,nosuid,nodev,size=2g
+    volumes:
+      - worker-cache:/cache
     cap_drop:
       - ALL
     security_opt:
@@ -74,3 +76,6 @@ services:
     mem_limit: 2g
     cpus: 2
     restart: unless-stopped
+
+volumes:
+  worker-cache:

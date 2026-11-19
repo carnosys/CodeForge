@@ -238,6 +238,7 @@ function createReportActions(job) {
 
     try {
       const response = await fetch(`/api/job/${encodeURIComponent(jobId)}/report`);
+      if (response.status === 401) return window.CodeForgeAuth.redirectToLogin();
       if (!response.ok) {
         let detail = `The server returned ${response.status}.`;
         try {
@@ -638,6 +639,9 @@ function createBuildFindings(job) {
   if (findings.length) {
     const list = document.createElement("div");
     list.className = "build-finding-list";
+    list.tabIndex = 0;
+    list.setAttribute("role", "region");
+    list.setAttribute("aria-label", `Scrollable build findings list, ${findings.length} findings`);
     for (const finding of findings) {
       const item = document.createElement("article");
       item.className = "build-finding";
@@ -964,6 +968,7 @@ async function loadAnalysis() {
 
   try {
     const response = await fetch(`/api/job/${encodeURIComponent(id)}`);
+    if (response.status === 401) return window.CodeForgeAuth.redirectToLogin();
     if (response.status === 404) {
       showLookupError(
         "Job does not exist",
@@ -991,4 +996,10 @@ async function loadAnalysis() {
   }
 }
 
-loadAnalysis();
+async function initialize() {
+  const user = await window.CodeForgeAuth.requireUser();
+  if (!user) return;
+  loadAnalysis();
+}
+
+initialize();

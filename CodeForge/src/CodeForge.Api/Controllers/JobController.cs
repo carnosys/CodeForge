@@ -1,3 +1,4 @@
+using CodeForge.Api.Auth;
 using CodeForge.Api.Reports;
 using CodeForge.Dtos;
 using CodeForge.Helpers;
@@ -5,28 +6,33 @@ using CodeForge.Infrastructure.Data;
 using CodeForge.Infrastructure.Messaging;
 using CodeForge.Infrastructure.Models;
 using CodeForge.Infrastructure.Reports;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class JobController : ControllerBase
 {
     private readonly CodeForgeDbContext _context;
     private readonly ServiceBusProducer _producer;
     private readonly BlobReportStore _reportStore;
+    private readonly ICurrentUser _currentUser;
     private readonly ILogger<JobController> _logger;
 
     public JobController(
         CodeForgeDbContext context,
         ServiceBusProducer producer,
         BlobReportStore reportStore,
+        ICurrentUser currentUser,
         ILogger<JobController> logger)
     {
         _context = context;
         _producer = producer;
         _reportStore = reportStore;
+        _currentUser = currentUser;
         _logger = logger;
     }
 
@@ -35,6 +41,7 @@ public class JobController : ControllerBase
     {
      var jobs = await _context.Job
          .AsNoTracking()
+         .OwnedBy(_currentUser.UserId)
          .OrderByDescending(job => job.CreatedAt)
          .ToListAsync(HttpContext.RequestAborted);
      return Ok(jobs.Select(JobResponseDto.FromJob).ToList());
@@ -43,7 +50,12 @@ public class JobController : ControllerBase
     [HttpGet("{id}")]
     async public Task<IActionResult> GetJobById(Guid id)
     {
-        var job = await _context.Job.FirstOrDefaultAsync(j=> j.Id == id);
+        var job = await _context.Job
+            .AsNoTracking()
+            .OwnedBy(_currentUser.UserId)
+            .FirstOrDefaultAsync(
+                job => job.Id == id,
+                HttpContext.RequestAborted);
         if (job==null)
         {
             return NotFound(new ProblemDetails
@@ -63,6 +75,7 @@ public class JobController : ControllerBase
     {
         var job = await _context.Job
             .AsNoTracking()
+            .OwnedBy(_currentUser.UserId)
             .SingleOrDefaultAsync(
                 candidate => candidate.Id == id,
                 HttpContext.RequestAborted);
@@ -151,7 +164,12 @@ public class JobController : ControllerBase
     [HttpGet("{id}/dotnet-project-graph")]
     public async Task<IActionResult> GetDotNetProjectGraph(Guid id)
     {
-        var job = await _context.Job.AsNoTracking().SingleOrDefaultAsync(candidate => candidate.Id == id, HttpContext.RequestAborted);
+        var job = await _context.Job
+            .AsNoTracking()
+            .OwnedBy(_currentUser.UserId)
+            .SingleOrDefaultAsync(
+                candidate => candidate.Id == id,
+                HttpContext.RequestAborted);
         if (job is null || job.GetDotNetArchitecture()?.GraphAvailable != true) return NotFound();
         try
         {
@@ -170,6 +188,7 @@ public class JobController : ControllerBase
     {
         var job = await _context.Job
             .AsNoTracking()
+            .OwnedBy(_currentUser.UserId)
             .SingleOrDefaultAsync(
                 candidate => candidate.Id == id,
                 HttpContext.RequestAborted);
@@ -230,6 +249,7 @@ public class JobController : ControllerBase
 
       var job = new Job
       {
+          OwnerId = _currentUser.UserId,
           RepoUrl = createJobDto.RepoUrl,
           JobTitle = string.IsNullOrWhiteSpace(createJobDto.JobTitle) ? null : createJobDto.JobTitle.Trim(),
           JobDescription = string.IsNullOrWhiteSpace(createJobDto.JobDescription) ? null : createJobDto.JobDescription.Trim(),
@@ -261,7 +281,11 @@ public class JobController : ControllerBase
             return BadRequest("JobDescription is required and cannot exceed 500 characters.");
         }
 
-        var job = await _context.Job.FirstOrDefaultAsync(j => j.Id == id);
+        var job = await _context.Job
+            .OwnedBy(_currentUser.UserId)
+            .FirstOrDefaultAsync(
+            job => job.Id == id,
+            HttpContext.RequestAborted);
         if (job == null)
         {
             return NotFound();
@@ -284,7 +308,9 @@ public class JobController : ControllerBase
     [HttpPost("{id}/retry")]
     public async Task<IActionResult> RetryJob(Guid id)
     {
-        var job = await _context.Job.SingleOrDefaultAsync(
+        var job = await _context.Job
+            .OwnedBy(_currentUser.UserId)
+            .SingleOrDefaultAsync(
             candidate => candidate.Id == id,
             HttpContext.RequestAborted);
 
@@ -325,7 +351,11 @@ public class JobController : ControllerBase
     [HttpDelete("{id}")]
     async public Task<IActionResult> DeleteJob(Guid id)
     {
-        var job = await _context.Job.FirstOrDefaultAsync(j=> j.Id == id);
+        var job = await _context.Job
+            .OwnedBy(_currentUser.UserId)
+            .FirstOrDefaultAsync(
+            job => job.Id == id,
+            HttpContext.RequestAborted);
         if (job==null)
         {
             return NotFound(new ProblemDetails

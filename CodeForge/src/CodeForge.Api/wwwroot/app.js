@@ -125,6 +125,7 @@ async function loadJobs() {
   refreshButton.classList.add("loading");
   try {
     const response = await fetch(apiUrl);
+    if (response.status === 401) return window.CodeForgeAuth.redirectToLogin();
     if (!response.ok) throw new Error(await getError(response));
     renderJobs(await response.json());
   } catch (error) {
@@ -143,6 +144,7 @@ async function retryJob(id, button) {
 
   try {
     const response = await fetch(`${apiUrl}/${id}/retry`, { method: "POST" });
+    if (response.status === 401) return window.CodeForgeAuth.redirectToLogin();
     if (!response.ok) throw new Error(await getError(response));
     showMessage("Analysis reset and queued for retry.", true);
     await loadJobs();
@@ -159,6 +161,7 @@ async function deleteJob(id, card) {
   button.textContent = "Deleting…";
   try {
     const response = await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+    if (response.status === 401) return window.CodeForgeAuth.redirectToLogin();
     if (!response.ok) throw new Error(await getError(response));
     card.remove();
     if (!list.children.length) renderJobs([]);
@@ -185,6 +188,7 @@ form.addEventListener("submit", async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
+    if (response.status === 401) return window.CodeForgeAuth.redirectToLogin();
     if (!response.ok) throw new Error(await getError(response));
     form.reset();
     showMessage("Analysis queued successfully.", true);
@@ -198,5 +202,12 @@ form.addEventListener("submit", async (event) => {
 });
 
 refreshButton.addEventListener("click", loadJobs);
-loadJobs();
-setInterval(loadJobs, 10000);
+
+async function initialize() {
+  const user = await window.CodeForgeAuth.requireUser();
+  if (!user) return;
+  loadJobs();
+  setInterval(loadJobs, 10000);
+}
+
+initialize();

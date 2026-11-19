@@ -40,6 +40,10 @@ public class Job
     private static readonly JsonSerializerOptions AnalysisJsonOptions = new(JsonSerializerDefaults.Web);
 
     public Guid Id {get; set;} = Guid.NewGuid();
+
+    public Guid OwnerId { get; set; }
+
+    public ApplicationUser Owner { get; set; } = null!;
     
     [GitHubRepoUrl]
     public required string RepoUrl {get; set;}

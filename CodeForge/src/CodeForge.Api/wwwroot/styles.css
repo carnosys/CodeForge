@@ -79,6 +79,53 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 4px rgba(127, 159, 0, .12);
 }
 
+.account-nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--muted);
+  font: 500 10px "DM Mono", monospace;
+}
+
+.account-nav [data-user-email] { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+.account-nav button {
+  padding: 7px 0;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ink);
+  font: 500 10px "DM Mono", monospace;
+  text-transform: uppercase;
+}
+
+.auth-page { padding: 72px 0 96px; }
+.auth-intro { margin-bottom: 56px; }
+.auth-intro h1 { font-size: clamp(44px, 5.4vw, 72px); }
+.auth-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
+.auth-form {
+  padding: 28px;
+  background: var(--panel);
+  border: 1px solid var(--ink);
+  box-shadow: 7px 7px 0 var(--ink);
+}
+.auth-form input { margin-bottom: 20px; }
+.auth-form button[type="submit"] {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding: 0 18px;
+  color: white;
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  font-weight: 600;
+}
+.auth-form button[type="submit"]:hover { color: var(--ink); background: var(--acid); }
+.auth-form button:disabled { cursor: wait; opacity: .65; }
+.password-guidance { margin: -10px 0 0; color: var(--muted); font: 400 10px/1.5 "DM Mono", monospace; }
+
 .hero {
   display: grid;
   grid-template-columns: 1fr 1.08fr;
@@ -514,7 +561,17 @@ footer {
 .build-findings h3 { margin: 8px 0 10px; font-size: 19px; }
 .build-findings p { color: var(--muted); font-size: 13px; line-height: 1.65; }
 .build-findings-metadata { margin: 0 0 16px; }
-.build-finding-list { display: grid; gap: 12px; margin-top: 18px; }
+.build-finding-list {
+  display: grid;
+  gap: 12px;
+  max-height: min(65vh, 640px);
+  margin-top: 18px;
+  padding-right: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.build-finding-list:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
 .build-finding {
   padding: 15px;
   background: rgba(255, 255, 255, .72);
@@ -621,11 +678,14 @@ footer {
   .job-form { max-width: 620px; }
   .analysis-signal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .analysis-section-grid { grid-template-columns: 1fr; }
+  .auth-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
   .page-shell { width: min(100% - 24px, 1180px); }
   .topbar { height: 68px; }
+  .account-nav [data-user-email] { display: none; }
+  .account-nav { gap: 12px; }
   .system-status { font-size: 9px; }
   .hero { gap: 42px; padding-top: 52px; }
   .analysis-summary { flex-direction: column; }

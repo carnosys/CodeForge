@@ -32,9 +32,13 @@ RUN apt-get update \
     && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /cache/dotnet /cache/nuget/packages /cache/nuget/http-cache \
+    && chown -R $APP_UID:$APP_UID /cache
+
 WORKDIR /app
-ENV DOTNET_CLI_HOME=/tmp/dotnet \
-    NUGET_PACKAGES=/tmp/nuget/packages \
+ENV DOTNET_CLI_HOME=/cache/dotnet \
+    NUGET_PACKAGES=/cache/nuget/packages \
+    NUGET_HTTP_CACHE_PATH=/cache/nuget/http-cache \
     HOME=/tmp/home \
     XDG_RUNTIME_DIR=/tmp/codeforge-runtime \
     DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \

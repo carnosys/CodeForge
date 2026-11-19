@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20261114-1">
+  <link rel="stylesheet" href="/styles.css?v=20261119-1">
 </head>
 <body>
   <div class="page-shell">
@@ -17,7 +17,11 @@
         <span class="brand-mark" aria-hidden="true">CF</span>
         <span>CodeForge</span>
       </a>
-      <a class="back-link" href="/">← Build queue</a>
+      <div class="account-nav">
+        <span data-user-email></span>
+        <a class="back-link" href="/">← Analyses</a>
+        <button type="button" data-logout>Sign out</button>
+      </div>
     </header>
 
     <main class="analysis-page">
@@ -38,6 +42,7 @@
     </footer>
   </div>
 
-  <script src="/analysis.js?v=20261114-1" defer></script>
+  <script src="/session.js?v=20261119-1" defer></script>
+  <script src="/analysis.js?v=20261119-1" defer></script>
 </body>
 </html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sign in to manage your CodeForge repository analyses.">
+  <title>Sign in — CodeForge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css?v=20261119-1">
+</head>
+<body>
+  <div class="page-shell auth-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="CodeForge home">
+        <span class="brand-mark" aria-hidden="true">CF</span>
+        <span>CodeForge</span>
+      </a>
+      <div class="system-status">Private repository analyses</div>
+    </header>
+
+    <main class="auth-page">
+      <section class="auth-intro">
+        <p class="eyebrow">YOUR CODEFORGE WORKSPACE</p>
+        <h1>Own your analysis.<br><em>Keep results private.</em></h1>
+        <p class="hero-copy">Sign in to submit repositories and access only the jobs, reports, and diagrams owned by your account.</p>
+      </section>
+
+      <div class="auth-grid">
+        <form class="auth-form" id="login-form">
+          <div class="form-heading"><span>Sign in</span><span class="step">RETURNING</span></div>
+          <label for="login-email">Email</label>
+          <input id="login-email" name="email" type="email" maxlength="254" autocomplete="email" required>
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" maxlength="128" autocomplete="current-password" required>
+          <button type="submit"><span>Sign in</span><span aria-hidden="true">→</span></button>
+          <p class="form-message" data-auth-message role="status"></p>
+        </form>
+
+        <form class="auth-form" id="register-form">
+          <div class="form-heading"><span>Create account</span><span class="step">NEW</span></div>
+          <label for="register-email">Email</label>
+          <input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required>
+          <label for="register-password">Password</label>
+          <input id="register-password" name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required>
+          <p class="password-guidance">At least 12 characters with uppercase, lowercase, number, and symbol.</p>
+          <button type="submit"><span>Create account</span><span aria-hidden="true">→</span></button>
+          <p class="form-message" data-auth-message role="status"></p>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="/auth-page.js?v=20261119-1" defer></script>
+</body>
+</html>
