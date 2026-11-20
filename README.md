@@ -1,44 +1,50 @@
 # CodeForge
 
-> Repository intelligence for engineering teams.
+> Cloud-based repository intelligence for engineering teams.
 
-CodeForge is a repository analysis service for .NET and JavaScript/TypeScript
-projects. Submit a public GitHub repository and CodeForge will clone it, build
-applicable .NET projects, collect structured engineering signals, and present
-the results in a web report and downloadable PDF.
+CodeForge is a containerized cloud application that analyzes .NET and
+JavaScript/TypeScript repositories through an asynchronous worker pipeline.
+From a private web workspace, a user submits a public GitHub repository and
+CodeForge queues the work, clones the source in a dedicated worker workspace,
+builds applicable projects, collects structured engineering signals, and
+presents the persisted results in a web report and downloadable PDF.
 
-The goal is not only to answer whether a repository builds. CodeForge brings
-compiler diagnostics, tests, coverage, complexity, and dependency structure
-together so developers can understand what needs attention and why.
+CodeForge is more than an online build runner. It brings compiler diagnostics,
+tests, coverage, complexity, dependency structure, and architecture checks
+together in one cloud-hosted report so developers can understand what needs
+attention and why. Its API and worker are separate container workloads, while
+Azure Service Bus, PostgreSQL, and Blob Storage provide durable messaging,
+state, and report artifacts.
+
+## Why a cloud application?
+
+- **Submit and return later.** Repository analysis runs asynchronously, so a
+  browser request does not need to remain open while builds and analyzers run.
+- **Durable processing.** Jobs, lifecycle state, findings, and report metadata
+  are persisted independently of an API or worker container restart.
+- **Independent scaling.** The web API and analysis workers can be deployed and
+  scaled separately according to interactive traffic and queue depth.
+- **Centralized reports.** Analysis evidence and diagrams are available from a
+  private workspace and can be shared as consistent PDF reports.
+- **Reliable handoff.** A transactional outbox and Service Bus queue separate
+  job submission from resource-intensive repository processing.
 
 ## Screenshots
 
-The slots below are ready for final product screenshots. Add the images to
-`docs/screenshots/` using the listed filenames, then replace each placeholder
-with the corresponding Markdown image line shown in the comment beneath it.
-
 | Landing page and authentication | Private analysis workspace |
 |---|---|
-| _Screenshot placeholder — `docs/screenshots/landing-page.png`_ | _Screenshot placeholder — `docs/screenshots/workspace.png`_ |
+| ![CodeForge landing page and authentication](docs/screenshots/landing-page.png) | ![CodeForge private analysis workspace](docs/screenshots/workspace.png) |
 
-<!-- ![CodeForge landing page and authentication](docs/screenshots/landing-page.png) -->
-<!-- ![CodeForge private analysis workspace](docs/screenshots/workspace.png) -->
-
-| Repository health overview | Dependency diagrams |
+| Repository health overview | Dependency overview |
 |---|---|
-| _Screenshot placeholder — `docs/screenshots/analysis-overview.png`_ | _Screenshot placeholder — `docs/screenshots/dependency-diagrams.png`_ |
-
-<!-- ![CodeForge repository health overview](docs/screenshots/analysis-overview.png) -->
-<!-- ![CodeForge dependency diagrams](docs/screenshots/dependency-diagrams.png) -->
-
-| Downloadable PDF report |
-|---|
-| _Screenshot placeholder — `docs/screenshots/pdf-report.png`_ |
-
-<!-- ![CodeForge downloadable PDF report](docs/screenshots/pdf-report.png) -->
+| ![CodeForge repository health overview](docs/screenshots/analysis-overview.png) | ![CodeForge dependency overview](docs/screenshots/dependency-overview.png) |
 
 ## Features
 
+- **Cloud-native asynchronous processing** with separate API and worker
+  containers connected through Azure Service Bus.
+- **Durable cloud persistence** using PostgreSQL for application state and
+  Azure Blob Storage for diagrams and report artifacts.
 - **Account-based access** with registration, sign-in, secure application
   cookies, and persisted data-protection keys.
 - **Private job ownership** so users only see, open, and download reports for
@@ -84,34 +90,43 @@ and not-applicable analysis stages.
 
 PDF download remains disabled until the final persisted report is ready.
 
-## How it works
+## Cloud architecture
 
 ```text
-Browser
-   |
-   v
-CodeForge API ---- PostgreSQL
-   |                  ^
-   | outbox message   |
-   v                  |
-Azure Service Bus     |
-   |                  |
-   v                  |
-CodeForge Worker -----+
-   |
-   +-- clone repository
-   +-- run static analyzers
-   +-- discover .NET projects
-   +-- build and collect diagnostics
-   +-- optionally run trusted tests and coverage
-   +-- render dependency diagrams
-   +-- save report data and Blob artifacts
+Browser / authenticated user
+             |
+             v
+      CodeForge API container
+         |              |
+         |              +------ PostgreSQL
+         |                     users, jobs, outbox,
+         |                     findings, lifecycle state
+         v
+    Azure Service Bus
+         |
+         v
+    CodeForge Worker container
+         |
+         +-- clone repository
+         +-- run static analyzers
+         +-- discover and build .NET projects
+         +-- collect diagnostics, tests, and coverage
+         +-- render dependency diagrams
+         |
+         +------ Azure Blob Storage
+                 diagrams and report artifacts
 ```
 
 The API creates a job and an outbox record in the same database transaction.
 The outbox publisher sends the job ID to Azure Service Bus. A worker processes
 the repository, persists structured results, and marks the report ready only
-after final persistence succeeds.
+after final persistence succeeds. Service Bus keeps web requests separate from
+long-running analysis, while the database preserves job ownership and progress
+across container restarts.
+
+The API and worker images can run on any suitable container platform. The
+current cloud design uses Azure-managed data, messaging, identity, and artifact
+services, and supports queue-driven worker scaling in Azure Container Apps.
 
 Users must create an account or sign in before submitting a repository. Every
 job is associated with its owner, and the API applies that ownership check when
@@ -132,14 +147,18 @@ Dockerfile.worker
 compose.yaml
 ```
 
-## Requirements
+## Cloud requirements
 
-- .NET 10 SDK
-- Docker with Docker Compose
 - Azure Database for PostgreSQL
 - Azure Service Bus with a session-enabled queue
 - Azure Blob Storage
 - Azure identities or credentials with the required data-plane roles
+- A container platform for the API and worker, such as Azure Container Apps
+
+For local development, install:
+
+- .NET 10 SDK
+- Docker with Docker Compose
 
 The worker image includes pinned analysis dependencies:
 
