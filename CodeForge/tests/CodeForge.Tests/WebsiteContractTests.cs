@@ -48,6 +48,11 @@ public sealed class WebsiteContractTests
         Assert.Contains("id=\"login-form\"", login);
         Assert.Contains("id=\"register-form\"", login);
         Assert.Contains("type=\"password\"", login);
+        Assert.Contains("data-show-auth=\"login\"", login);
+        Assert.Contains("data-show-auth=\"register\"", login);
+        Assert.Contains("id=\"login-form\" hidden", login);
+        Assert.Contains("id=\"register-form\" hidden", login);
+        Assert.Contains("WHAT CODEFORGE ANALYZES", login);
     }
 
     [Fact]

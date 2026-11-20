@@ -98,15 +98,83 @@ button { cursor: pointer; }
   text-transform: uppercase;
 }
 
-.auth-page { padding: 72px 0 96px; }
-.auth-intro { margin-bottom: 56px; }
-.auth-intro h1 { font-size: clamp(44px, 5.4vw, 72px); }
-.auth-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
+.auth-page { padding: 84px 0 110px; }
+.auth-product-intro { max-width: 920px; }
+.auth-product-intro h1 { max-width: 850px; font-size: clamp(52px, 7vw, 92px); }
+.auth-lead {
+  max-width: 760px;
+  margin: 34px 0 0;
+  color: var(--muted);
+  font-size: clamp(16px, 1.8vw, 20px);
+  line-height: 1.75;
+}
+.auth-capabilities { margin-top: 100px; padding-top: 38px; border-top: 1px solid var(--ink); }
+.auth-section-heading { display: grid; grid-template-columns: minmax(160px, .6fr) 1.4fr; gap: 32px; align-items: start; }
+.auth-section-heading h2, .auth-benefit h2, .auth-access h2 {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -.045em;
+}
+.auth-capability-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 48px;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+.auth-capability-grid article {
+  min-height: 260px;
+  padding: 26px;
+  background: rgba(250, 249, 244, .72);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.auth-capability-grid article > span { color: var(--muted); font: 500 10px "DM Mono", monospace; }
+.auth-capability-grid h3 { margin: 50px 0 12px; font-size: 20px; letter-spacing: -.025em; }
+.auth-capability-grid p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.75; }
+.auth-benefit {
+  margin-top: 88px;
+  padding: 46px;
+  color: white;
+  background: var(--ink);
+}
+.auth-benefit .eyebrow { color: var(--acid); }
+.auth-benefit p:last-child { max-width: 780px; margin: 28px 0 0; color: #c8c9c1; font-size: 16px; line-height: 1.75; }
+.auth-access { margin-top: 88px; text-align: center; }
+.auth-access h2 { margin-inline: auto; }
+.auth-actions { display: flex; justify-content: center; gap: 14px; margin-top: 32px; }
+.auth-actions button {
+  min-width: 190px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 0 18px;
+  border: 1px solid var(--ink);
+  font-weight: 600;
+}
+.auth-action-primary { color: white; background: var(--ink); }
+.auth-action-primary:hover { color: var(--ink); background: var(--acid); }
+.auth-action-secondary { color: var(--ink); background: transparent; }
+.auth-action-secondary:hover { background: var(--panel); }
+.auth-form-stage { max-width: 590px; margin: 64px auto 0; scroll-margin-top: 32px; }
 .auth-form {
   padding: 28px;
   background: var(--panel);
   border: 1px solid var(--ink);
   box-shadow: 7px 7px 0 var(--ink);
+}
+.auth-close {
+  padding: 4px 0;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  font: 500 9px "DM Mono", monospace;
+  text-transform: uppercase;
 }
 .auth-form input { margin-bottom: 20px; }
 .auth-form button[type="submit"] {
@@ -678,7 +746,8 @@ footer {
   .job-form { max-width: 620px; }
   .analysis-signal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .analysis-section-grid { grid-template-columns: 1fr; }
-  .auth-grid { grid-template-columns: 1fr; }
+  .auth-section-heading { grid-template-columns: 1fr; gap: 4px; }
+  .auth-capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 560px) {
@@ -688,6 +757,14 @@ footer {
   .account-nav { gap: 12px; }
   .system-status { font-size: 9px; }
   .hero { gap: 42px; padding-top: 52px; }
+  .auth-page { padding: 58px 0 76px; }
+  .auth-capabilities, .auth-benefit, .auth-access { margin-top: 64px; }
+  .auth-capability-grid { grid-template-columns: 1fr; margin-top: 34px; }
+  .auth-capability-grid article { min-height: 220px; padding: 22px; }
+  .auth-benefit { padding: 28px 22px; }
+  .auth-actions { flex-direction: column; }
+  .auth-actions button { width: 100%; }
+  .auth-form { padding: 22px; box-shadow: 6px 6px 0 var(--ink); }
   .analysis-summary { flex-direction: column; }
   .analysis-summary-actions { align-items: flex-start; }
   .report-download-message { text-align: left; }

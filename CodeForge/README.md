@@ -1,5 +1,7 @@
 # CodeForge
 
+> Repository intelligence for engineering teams.
+
 CodeForge is a repository analysis service for .NET and JavaScript/TypeScript
 projects. Submit a public GitHub repository and CodeForge will clone it, build
 applicable .NET projects, collect structured engineering signals, and present
@@ -9,8 +11,38 @@ The goal is not only to answer whether a repository builds. CodeForge brings
 compiler diagnostics, tests, coverage, complexity, and dependency structure
 together so developers can understand what needs attention and why.
 
+## Screenshots
+
+The slots below are ready for final product screenshots. Add the images to
+`docs/screenshots/` using the listed filenames, then replace each placeholder
+with the corresponding Markdown image line shown in the comment beneath it.
+
+| Landing page and authentication | Private analysis workspace |
+|---|---|
+| _Screenshot placeholder — `docs/screenshots/landing-page.png`_ | _Screenshot placeholder — `docs/screenshots/workspace.png`_ |
+
+<!-- ![CodeForge landing page and authentication](docs/screenshots/landing-page.png) -->
+<!-- ![CodeForge private analysis workspace](docs/screenshots/workspace.png) -->
+
+| Repository health overview | Dependency diagrams |
+|---|---|
+| _Screenshot placeholder — `docs/screenshots/analysis-overview.png`_ | _Screenshot placeholder — `docs/screenshots/dependency-diagrams.png`_ |
+
+<!-- ![CodeForge repository health overview](docs/screenshots/analysis-overview.png) -->
+<!-- ![CodeForge dependency diagrams](docs/screenshots/dependency-diagrams.png) -->
+
+| Downloadable PDF report |
+|---|
+| _Screenshot placeholder — `docs/screenshots/pdf-report.png`_ |
+
+<!-- ![CodeForge downloadable PDF report](docs/screenshots/pdf-report.png) -->
+
 ## Features
 
+- **Account-based access** with registration, sign-in, secure application
+  cookies, and persisted data-protection keys.
+- **Private job ownership** so users only see, open, and download reports for
+  repository analyses they own.
 - **Repository build analysis** using the repository's existing .NET build and
   analyzer configuration.
 - **Structured compiler and Roslyn diagnostics** with severity, rule ID,
@@ -81,6 +113,11 @@ The outbox publisher sends the job ID to Azure Service Bus. A worker processes
 the repository, persists structured results, and marks the report ready only
 after final persistence succeeds.
 
+Users must create an account or sign in before submitting a repository. Every
+job is associated with its owner, and the API applies that ownership check when
+listing jobs, opening an analysis, downloading a report, or retrieving a graph
+artifact.
+
 ## Project structure
 
 ```text
@@ -140,13 +177,24 @@ characters. Docker Compose parses this file correctly.
 
 ## Run locally
 
-Build and start the complete local stack:
+Create and configure `.env`, apply the database migrations, then build and
+start the complete stack:
 
 ```bash
+cp .env.example .env
+docker compose run --rm --build migrate
 docker compose up --build
 ```
 
-Open <http://localhost:8080>.
+Open <http://localhost:8080>. The landing page explains the available analysis
+signals and provides separate **Sign in** and **Create account** actions. After
+authentication, the workspace only displays jobs owned by the current user.
+
+To start the stack in the background:
+
+```bash
+docker compose up --detach --build
+```
 
 Stop the stack with:
 
@@ -171,6 +219,22 @@ docker compose run --rm --build migrate
 
 Running the command again is safe; EF Core reports when the database is already
 up to date.
+
+## Authentication and job ownership
+
+CodeForge uses ASP.NET Core Identity with a unique, normalized email address as
+the username. Passwords must be at least 12 characters and contain uppercase,
+lowercase, numeric, and non-alphanumeric characters.
+
+Authentication uses an HTTP-only `CodeForge.Auth` cookie with strict SameSite
+handling. Data-protection keys are persisted in PostgreSQL so authentication
+cookies remain valid when the API container is recreated or when multiple API
+instances are used.
+
+Each analysis job has one owning user, while a user can own many jobs. The API
+filters job queries by the authenticated user's identifier; requesting another
+user's job or report does not expose that resource. Keep this ownership filter
+in place when adding future job or artifact endpoints.
 
 ## Trusted test execution
 

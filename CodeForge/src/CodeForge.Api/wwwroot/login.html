@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20261119-1">
+  <link rel="stylesheet" href="/styles.css?v=20261119-2">
 </head>
 <body>
   <div class="page-shell auth-shell">
@@ -21,15 +21,64 @@
     </header>
 
     <main class="auth-page">
-      <section class="auth-intro">
-        <p class="eyebrow">YOUR CODEFORGE WORKSPACE</p>
-        <h1>Own your analysis.<br><em>Keep results private.</em></h1>
-        <p class="hero-copy">Sign in to submit repositories and access only the jobs, reports, and diagrams owned by your account.</p>
+      <section class="auth-product-intro">
+        <p class="eyebrow">REPOSITORY INTELLIGENCE FOR ENGINEERING TEAMS</p>
+        <h1>Understand code.<br><em>Improve what matters.</em></h1>
+        <p class="auth-lead">CodeForge turns a public GitHub repository into a structured engineering review. It builds the code, gathers objective quality signals, and presents the evidence in one focused analysis instead of making you search across disconnected tools and logs.</p>
       </section>
 
-      <div class="auth-grid">
-        <form class="auth-form" id="login-form">
-          <div class="form-heading"><span>Sign in</span><span class="step">RETURNING</span></div>
+      <section class="auth-capabilities" aria-labelledby="capabilities-title">
+        <div class="auth-section-heading">
+          <p class="eyebrow">WHAT CODEFORGE ANALYZES</p>
+          <h2 id="capabilities-title">One repository. A complete technical picture.</h2>
+        </div>
+        <div class="auth-capability-grid">
+          <article>
+            <span>01</span>
+            <h3>Build health</h3>
+            <p>Compiles .NET projects and captures structured compiler and Roslyn analyzer findings with severity and source locations.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Tests and coverage</h3>
+            <p>Runs trusted .NET tests, reports passed, failed, and skipped counts, and shows the application code exercised by those tests.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Code complexity</h3>
+            <p>Uses Lizard to identify complex C#, JavaScript, and TypeScript functions that deserve focused review.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h3>Dependencies</h3>
+            <p>Maps .NET project references and JavaScript or TypeScript imports, including cycles and configured architecture violations.</p>
+          </article>
+          <article>
+            <span>05</span>
+            <h3>Shareable reports</h3>
+            <p>Keeps the Analysis page and downloadable PDF aligned to the same persisted engineering evidence.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="auth-benefit">
+        <p class="eyebrow">WHY IT HELPS</p>
+        <h2>Review risks sooner and make decisions with evidence.</h2>
+        <p>CodeForge gives developers and reviewers a faster way to understand an unfamiliar repository, prioritize maintainability work, spot architectural drift, and communicate quality concerns without exposing one user’s analysis to another.</p>
+      </section>
+
+      <section class="auth-access" aria-labelledby="auth-access-title">
+        <p class="eyebrow">START ANALYZING</p>
+        <h2 id="auth-access-title">Access your private CodeForge workspace.</h2>
+        <div class="auth-actions">
+          <button class="auth-action-primary" type="button" data-show-auth="login">Sign in <span aria-hidden="true">→</span></button>
+          <button class="auth-action-secondary" type="button" data-show-auth="register">Create account <span aria-hidden="true">＋</span></button>
+        </div>
+      </section>
+
+      <section class="auth-form-stage" id="auth-form-stage" hidden aria-live="polite">
+        <form class="auth-form" id="login-form" hidden>
+          <div class="form-heading"><span>Sign in</span><button class="auth-close" type="button" data-close-auth aria-label="Close sign-in form">Close</button></div>
           <label for="login-email">Email</label>
           <input id="login-email" name="email" type="email" maxlength="254" autocomplete="email" required>
           <label for="login-password">Password</label>
@@ -38,8 +87,8 @@
           <p class="form-message" data-auth-message role="status"></p>
         </form>
 
-        <form class="auth-form" id="register-form">
-          <div class="form-heading"><span>Create account</span><span class="step">NEW</span></div>
+        <form class="auth-form" id="register-form" hidden>
+          <div class="form-heading"><span>Create account</span><button class="auth-close" type="button" data-close-auth aria-label="Close registration form">Close</button></div>
           <label for="register-email">Email</label>
           <input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required>
           <label for="register-password">Password</label>
@@ -48,9 +97,9 @@
           <button type="submit"><span>Create account</span><span aria-hidden="true">→</span></button>
           <p class="form-message" data-auth-message role="status"></p>
         </form>
-      </div>
+      </section>
     </main>
   </div>
-  <script src="/auth-page.js?v=20261119-1" defer></script>
+  <script src="/auth-page.js?v=20261119-2" defer></script>
 </body>
 </html>
